@@ -1,0 +1,151 @@
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../theme/app_colors.dart';
+import '../theme/app_typography.dart';
+import '../theme/app_spacing.dart';
+import '../models/course.dart';
+import '../providers/course_provider.dart';
+import '../providers/semester_provider.dart';
+import '../widgets/course_card.dart';
+import '../widgets/edit_course_screen_wire.dart';
+
+/// 今日课程 — Home Screen
+/// Shows today's courses for the current week.
+class HomeScreen extends StatefulWidget {
+  final VoidCallback? onNavigateToSchedule;
+  const HomeScreen({super.key, this.onNavigateToSchedule});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      body: SafeArea(
+        child: Consumer2<CourseProvider, SemesterProvider>(
+          builder: (context, courseProvider, semesterProvider, _) {
+            final week = semesterProvider.currentWeek;
+            final today = DateTime.now();
+            final dayOfWeek = today.weekday % 7; // 0=Sun
+            final courses = courseProvider.coursesForDayAndWeek(dayOfWeek, week);
+
+            return Column(
+              children: [
+                Expanded(
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.contentPadding,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const SizedBox(height: AppSpacing.md),
+
+                        // ── Info panel (semi-transparent overlay) ──
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.md, AppSpacing.lg, AppSpacing.lg),
+                          decoration: BoxDecoration(
+                            color: const Color(0x80FFFFFF),
+                            borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // ── Header ──
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  GestureDetector(
+                                    onTap: widget.onNavigateToSchedule ?? () => Navigator.pushNamed(context, '/schedule'),
+                                    child: const Icon(Icons.calendar_month_outlined, size: AppSpacing.iconSize),
+                                  ),
+                                  Text('今日课程', style: AppTypography.pageTitle),
+                                  GestureDetector(
+                                    onTap: () => Navigator.pushNamed(context, '/settings'),
+                                    child: const Icon(Icons.settings_outlined, size: AppSpacing.iconSize),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: AppSpacing.sm),
+
+                              // ── Greeting ──
+                              Text(_greetingText(dayOfWeek), style: AppTypography.greeting),
+                              const SizedBox(height: AppSpacing.xs),
+                              Text(
+                                semesterProvider.isSet
+                                    ? '${today.month}月${today.day}日 · 第$week周'
+                                    : '${today.month}月${today.day}日 · 未选择第一天',
+                                style: AppTypography.caption,
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        const SizedBox(height: AppSpacing.lg),
+
+                        // ── Course List ──
+                        Expanded(
+                          child: courses.isEmpty
+                              ? _buildEmptyState()
+                              : ListView.separated(
+                                  itemCount: courses.length,
+                                  separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.base),
+                                  itemBuilder: (context, index) {
+                                    final course = courses[index];
+                                    return CourseCard(course: course);
+                                  },
+                                ),
+                        ),
+
+                        const SizedBox(height: AppSpacing.lg),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.free_breakfast, size: 64, color: AppColors.divider),
+          const SizedBox(height: AppSpacing.md),
+          Text('今天没有课程', style: AppTypography.bodySecondary),
+          const SizedBox(height: AppSpacing.sm),
+          Text('愉快的一天从没课开始 ☀️', style: AppTypography.caption),
+          const SizedBox(height: AppSpacing.xl),
+          TextButton.icon(
+            onPressed: widget.onNavigateToSchedule != null
+                ? widget.onNavigateToSchedule
+                : () => Navigator.pushNamed(context, '/schedule'),
+            icon: const Icon(Icons.add, size: 18),
+            label: const Text('去添加课程'),
+            style: TextButton.styleFrom(foregroundColor: AppColors.blue),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _greetingText(int dayOfWeek) {
+    const days = ['周日好', '周一好', '周二好', '周三好', '周四好', '周五好', '周六好'];
+    final now = DateTime.now();
+    final hour = now.hour;
+    String period = '早上好';
+    if (hour >= 12 && hour < 18) period = '下午好';
+    if (hour >= 18) period = '晚上好';
+    return '${days[dayOfWeek]}，$period';
+  }
+}

@@ -1,0 +1,30 @@
+name: course_schedule_app
+description: "千纸课 - 课程表App"
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.5.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  google_fonts: ^6.2.1
+  provider: ^6.1.2
+  shared_preferences: ^2.3.3
+  flutter_local_notifications: ^18.0.1
+  file_picker: ^9.0.0
+  flutter_colorpicker: ^1.1.0
+  path_provider: ^2.1.4
+  intl: ^0.20.2
+  cupertino_icons: ^1.0.8
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true
