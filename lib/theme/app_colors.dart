@@ -16,26 +16,26 @@ class AppColors {
   static const Color textSecondary = Color(0xFF6B6B8A);
 
   // ── Accent Colors ──
-  /// #6B8AFF — blue accent (primary brand color)
-  static const Color blue = Color(0xFF6B8AFF);
+  /// #0066FF — blue accent (primary brand color)
+  static const Color blue = Color(0xFF0066FF);
 
   /// #FF6B9D — pink accent
   static const Color pink = Color(0xFFFF6B9D);
 
-  /// #FAD700 — golden yellow
-  static const Color deepGold = Color(0xFFFAD700);
+  /// #FFD600 — golden yellow
+  static const Color deepGold = Color(0xFFFFD600);
 
-  /// #FAD700 — golden yellow accent
-  static const Color yellow = Color(0xFFFAD700);
+  /// #FFD600 — golden yellow accent
+  static const Color yellow = Color(0xFFFFD600);
 
-  /// #4ECDC4 — green accent
-  static const Color green = Color(0xFF4ECDC4);
+  /// #008C95 — green accent
+  static const Color green = Color(0xFF008C95);
 
-  /// #A78BFA — purple accent
-  static const Color purple = Color(0xFFA78BFA);
+  /// #7851A9 — purple accent
+  static const Color purple = Color(0xFF7851A9);
 
-  /// #FF9F43 — orange accent
-  static const Color orange = Color(0xFFFF9F43);
+  /// #FF5C00 — orange accent
+  static const Color orange = Color(0xFFFF5C00);
 
   // ── Semantic ──
   /// #FF3B30 — delete / danger

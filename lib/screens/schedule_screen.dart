@@ -30,6 +30,12 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
 
   static const _dayLabels = ['日', '一', '二', '三', '四', '五', '六'];
 
+  void _clearEmptySelection() {
+    if (_selectedEmptyCell != null) {
+      setState(() => _selectedEmptyCell = null);
+    }
+  }
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -61,69 +67,72 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
         child: Consumer2<CourseProvider, SemesterProvider>(
           builder: (context, cp, sp, _) {
             final today = DateTime.now();
-            final todayDow = today.weekday % 7;
-            final thisWeekSunday = today.subtract(Duration(days: todayDow));
 
-            return Column(
-              children: [
-                /// ── Fixed header ──
-                Padding(
-                  padding: const EdgeInsets.only(
-                    left: AppSpacing.contentPadding,
-                    right: AppSpacing.contentPadding,
-                    top: AppSpacing.md,
-                  ),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: const Color(0x80FFFFFF),
-                      borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
+            return GestureDetector(
+              onTap: _clearEmptySelection,
+              behavior: HitTestBehavior.translucent,
+              child: Column(
+                children: [
+                  /// ── Fixed top panel (header + date row, single rounded overlay) ──
+                  Padding(
+                    padding: const EdgeInsets.only(
+                      left: AppSpacing.contentPadding,
+                      right: AppSpacing.contentPadding,
+                      top: AppSpacing.md,
                     ),
-                    child: _buildHeaderRow(context, sp),
-                  ),
-                ),
-
-                /// ── Scrollable grid (clips at header bottom edge) ──
-                Expanded(
-                  child: PageView.builder(
-                    controller: pc,
-                    physics: EdgeAwarePhysics(
-                      atLeftEdge: _displayWeek == _weekMin,
-                      atRightEdge: _displayWeek == _weekMax,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: const Color(0x80FFFFFF),
+                        borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          _buildHeaderRow(context, sp),
+                          _buildDateRow(sp, today),
+                        ],
+                      ),
                     ),
-                    itemCount: _weekMax,
-                    onPageChanged: (page) {
-                      setState(() {
-                        _displayWeek = page + 1;
-                        _selectedCourseId = null;
-                        _selectedEmptyCell = null;
-                      });
-                    },
-                    itemBuilder: (context, index) {
-                      final w = index + 1;
-                      final wo = w - sp.currentWeek;
-                      final displaySunday = thisWeekSunday.add(Duration(days: wo * 7));
-                      final dates = List.generate(7, (i) => displaySunday.add(Duration(days: i)));
+                  ),
 
-                      return SingleChildScrollView(
-                        child: Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.contentPadding),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const SizedBox(height: AppSpacing.sm),
-                              _buildDateRow(displaySunday, dates, today, wo),
-                              const SizedBox(height: AppSpacing.md),
-                              _buildScheduleGrid(context, cp.courses, w, sp.currentWeek),
-                              const SizedBox(height: AppSpacing.sm),
-                            ],
+                  /// ── Scrollable grid ──
+                  Expanded(
+                    child: PageView.builder(
+                      controller: pc,
+                      physics: EdgeAwarePhysics(
+                        atLeftEdge: _displayWeek == _weekMin,
+                        atRightEdge: _displayWeek == _weekMax,
+                      ),
+                      itemCount: _weekMax,
+                      onPageChanged: (page) {
+                        setState(() {
+                          _displayWeek = page + 1;
+                          _selectedCourseId = null;
+                          _selectedEmptyCell = null;
+                        });
+                      },
+                      itemBuilder: (context, index) {
+                        final w = index + 1;
+
+                        return SingleChildScrollView(
+                          child: Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: AppSpacing.contentPadding),
+                            child: Column(
+                              children: [
+                                const SizedBox(height: AppSpacing.md),
+                                _buildScheduleGrid(context, cp.courses, w),
+                                const SizedBox(height: AppSpacing.sm),
+                              ],
+                            ),
                           ),
-                        ),
-                      );
-                    },
+                        );
+                      },
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             );
           },
         ),
@@ -131,17 +140,18 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     );
   }
 
-  /// ── Date row (50% white overlay, scrolls with grid) ──
-  Widget _buildDateRow(
-      DateTime displaySunday, List<DateTime> dates, DateTime today, int weekOffset) {
+  /// ── Date row (50% white overlay, fixed below header) ──
+  Widget _buildDateRow(SemesterProvider sp, DateTime today) {
+    final wo = _displayWeek - sp.currentWeek;
+    final todayDow = today.weekday % 7;
+    final thisWeekSunday = today.subtract(Duration(days: todayDow));
+    final displaySunday = thisWeekSunday.add(Duration(days: wo * 7));
+    final dates = List.generate(7, (i) => displaySunday.add(Duration(days: i)));
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(
-          AppSpacing.lg, AppSpacing.sm, AppSpacing.lg, AppSpacing.md),
-      decoration: BoxDecoration(
-        color: const Color(0x80FFFFFF),
-        borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
-      ),
+          AppSpacing.lg, 0, AppSpacing.lg, AppSpacing.md),
       child: Row(
         children: [
           SizedBox(
@@ -156,7 +166,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
           Expanded(
             child: Row(
               children: List.generate(7, (i) {
-                final isToday = dates[i].day == today.day && weekOffset == 0;
+                final isToday = dates[i].day == today.day && wo == 0;
                 return Expanded(
                   child: Column(
                     children: [
@@ -329,11 +339,17 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
   // ═══ Schedule Grid ═══
 
   Widget _buildScheduleGrid(
-      BuildContext context, List<Course> allCourses, int displayWeek, int currentWeek) {
+      BuildContext context, List<Course> allCourses, int displayWeek) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SizedBox(
+        Container(
+          decoration: BoxDecoration(
+            color: const Color(0x80FFFFFF),
+            borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
+          ),
+          padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+          child: SizedBox(
           width: AppSpacing.timeColumnWidth,
           child: Column(
             children: TimeSlot.slots
@@ -345,6 +361,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                           style: AppTypography.timeSlot, textAlign: TextAlign.center),
                     ))
                 .toList(),
+          ),
           ),
         ),
         const SizedBox(width: AppSpacing.gridSpacing),
@@ -759,6 +776,7 @@ class _CourseCell extends StatelessWidget {
               width: double.infinity,
               height: double.infinity,
               decoration: BoxDecoration(
+                color: AppColors.divider.withOpacity(0.5),
                 borderRadius: BorderRadius.circular(8),
                 border: border,
               ),
@@ -878,6 +896,7 @@ class _PulsingCellState extends State<_PulsingCell>
           width: double.infinity,
           height: double.infinity,
           decoration: BoxDecoration(
+            color: AppColors.divider.withOpacity(0.5),
             borderRadius: BorderRadius.circular(8),
             border:
                 Border.all(color: currentColor, width: widget.borderWidth + 0.5),
@@ -903,7 +922,9 @@ class _EmptyCell extends StatelessWidget {
           width: double.infinity,
           height: double.infinity,
           decoration: BoxDecoration(
-            color: AppColors.divider.withOpacity(0.3),
+            color: isSelected
+                ? AppColors.divider.withOpacity(0.5)
+                : Colors.transparent,
             borderRadius: BorderRadius.circular(8),
             border: isSelected
                 ? Border.all(

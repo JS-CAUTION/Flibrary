@@ -38,7 +38,7 @@ class CourseCard extends StatelessWidget {
         height: AppSpacing.courseCardHeight,
         padding: const EdgeInsets.all(AppSpacing.cardPadding),
         decoration: BoxDecoration(
-          color: AppColors.background,
+          color: AppColors.divider.withOpacity(0.5),
           borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
           boxShadow: AppShadows.card,
         ),
