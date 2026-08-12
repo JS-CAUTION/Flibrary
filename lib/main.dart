@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'app.dart';
-import 'theme/app_theme.dart';
 import 'providers/course_provider.dart';
 import 'providers/semester_provider.dart';
 import 'providers/background_provider.dart';

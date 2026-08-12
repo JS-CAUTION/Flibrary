@@ -21,8 +21,6 @@ class NotificationService {
       FlutterLocalNotificationsPlugin();
 
   static const _channelOngoingId = 'course_ongoing';
-  static const _channelServiceId = 'course_service';
-  static const _iconRes = 'ic_launcher';
   static const _pollInterval = Duration(seconds: 30);
 
   static bool _serviceStarted = false;
@@ -89,11 +87,6 @@ class NotificationService {
 
   static int _ongoingId(String courseId, int week) =>
       ('$courseId-ongoing-$week').hashCode.abs();
-
-  static int _dismissId(String courseId, int week) =>
-      ('$courseId-dismiss-$week').hashCode.abs();
-
-  static int _toEpochMs(DateTime dt) => dt.millisecondsSinceEpoch;
 
   static String _stateKey(String courseId, int week) => '$courseId-$week';
 

@@ -267,10 +267,6 @@ class _EditCourseScreenState extends State<EditCourseScreen> {
     _showValidationDialog(title: '课程时间冲突', child: child);
   }
 
-  void _showError(String msg) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
-  }
-
   Future<void> _delete() async {
     if (!_isEditing) return;
     final provider = context.read<CourseProvider>();
@@ -521,8 +517,7 @@ class _EditCourseScreenState extends State<EditCourseScreen> {
           _FormTextField(controller: entry.locationController, label: '上课地点', hint: '请输入上课地点', showDivider: true),
           SettingsRow(label: '星期', value: _dayText(entry.dayOfWeek), showChevron: true, showDivider: true,
               onTap: () => _showDayPicker(entry)),
-          SettingsRow(label: '节次', value: _periodText(entry), showChevron: true, showDivider: true,
-              onTap: () => _showPeriodPicker(entry)),
+          SettingsRow(label: '节次', value: _periodText(entry), showChevron: false, showDivider: true),
           SettingsRow(label: '周次', value: _weekTextDisplay(entry), showChevron: true, showDivider: true,
               onTap: () => _showWeekPicker(entry)),
           // Color picker
@@ -617,66 +612,6 @@ class _EditCourseScreenState extends State<EditCourseScreen> {
             ),
             const SizedBox(height: AppSpacing.lg),
           ],
-        ),
-      ),
-    );
-  }
-
-  void _showPeriodPicker(_CourseEntry entry) {
-    int tempStart = entry.startPeriod;
-    int tempEnd = entry.endPeriod;
-    showModalBottomSheet(
-      context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setModalState) => Container(
-          padding: const EdgeInsets.all(AppSpacing.lg),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text('选择节次', style: AppTypography.bodySemiBold),
-              const SizedBox(height: AppSpacing.lg),
-              Row(
-                children: [
-                  const Text('开始节次：'),
-                  const SizedBox(width: AppSpacing.sm),
-                  DropdownButton<int>(
-                    value: tempStart,
-                    items: List.generate(10, (i) => i + 1).map((v) => DropdownMenuItem(value: v, child: Text('第$v节'))).toList(),
-                    onChanged: (v) {
-                      setModalState(() { tempStart = v!; if (tempEnd < tempStart) tempEnd = tempStart; });
-                    },
-                  ),
-                  const SizedBox(width: AppSpacing.lg),
-                  const Text('结束节次：'),
-                  const SizedBox(width: AppSpacing.sm),
-                  DropdownButton<int>(
-                    value: tempEnd,
-                    items: List.generate(10, (i) => i + 1).map((v) => DropdownMenuItem(value: v, child: Text('第$v节'))).toList(),
-                    onChanged: (v) {
-                      setModalState(() { tempEnd = v!; if (tempEnd < tempStart) tempStart = tempEnd; });
-                    },
-                  ),
-                ],
-              ),
-              const SizedBox(height: AppSpacing.lg),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () {
-                    setState(() { entry.startPeriod = tempStart; entry.endPeriod = tempEnd; });
-                    Navigator.pop(ctx);
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.blue, foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSpacing.cardRadius)),
-                  ),
-                  child: const Text('确定'),
-                ),
-              ),
-              const SizedBox(height: AppSpacing.lg),
-            ],
-          ),
         ),
       ),
     );

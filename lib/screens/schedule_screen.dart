@@ -150,16 +150,18 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(
-          AppSpacing.lg, 0, AppSpacing.lg, AppSpacing.md),
+      padding: const EdgeInsets.only(bottom: AppSpacing.md),
       child: Row(
         children: [
           SizedBox(
             width: AppSpacing.timeColumnWidth,
-            child: Text(
-              '${displaySunday.month}月',
-              style: AppTypography.sectionHeader,
-              textAlign: TextAlign.center,
+            child: Transform.translate(
+              offset: const Offset(6, 0),
+              child: Text(
+                '${displaySunday.month}月',
+                style: AppTypography.sectionHeader,
+                textAlign: TextAlign.center,
+              ),
             ),
           ),
           const SizedBox(width: AppSpacing.gridSpacing),
@@ -168,8 +170,10 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
               children: List.generate(7, (i) {
                 final isToday = dates[i].day == today.day && wo == 0;
                 return Expanded(
-                  child: Column(
-                    children: [
+                  child: Container(
+                    margin: const EdgeInsets.symmetric(horizontal: 2),
+                    child: Column(
+                      children: [
                       Text(_dayLabels[i],
                           style: AppTypography.labelMedium, textAlign: TextAlign.center),
                       Text(
@@ -183,6 +187,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                         textAlign: TextAlign.center,
                       ),
                     ],
+                  ),
                   ),
                 );
               }),

@@ -29,7 +29,6 @@ class _CircleEditScreenState extends State<CircleEditScreen> {
   final _nameController = TextEditingController();
 
   bool _dragging = false;
-  int? _dragIndex;
   double _previewWidth = 0;
   double _previewHeight = 0;
   Offset _lastDragPos = Offset.zero;
@@ -253,7 +252,6 @@ class _CircleEditScreenState extends State<CircleEditScreen> {
                                   onTap: () => setState(() => _selectedIndex = i),
                                   onLongPressStart: (d) {
                                     setState(() {
-                                      _dragIndex = i;
                                       _selectedIndex = i;
                                       _dragging = true;
                                       _lastDragPos = d.localPosition;
@@ -274,7 +272,6 @@ class _CircleEditScreenState extends State<CircleEditScreen> {
                                   onLongPressEnd: (_) {
                                     setState(() {
                                       _dragging = false;
-                                      _dragIndex = null;
                                     });
                                   },
                                   child: Container(

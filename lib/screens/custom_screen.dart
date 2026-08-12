@@ -404,7 +404,6 @@ class _PresetThumbnail extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const refW = 393.0;
-    const refH = 852.0;
 
     return Container(
       width: 56,

@@ -3,11 +3,9 @@ import 'package:provider/provider.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_typography.dart';
 import '../theme/app_spacing.dart';
-import '../models/course.dart';
 import '../providers/course_provider.dart';
 import '../providers/semester_provider.dart';
 import '../widgets/course_card.dart';
-import '../widgets/edit_course_screen_wire.dart';
 
 /// 今日课程 — Home Screen
 /// Shows today's courses for the current week.

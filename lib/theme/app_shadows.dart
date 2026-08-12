@@ -8,9 +8,6 @@ class AppShadows {
   /// Shadow color: #6B8AFF at 8% opacity
   static const Color _shadowColor = Color(0x146B8AFF);
 
-  /// Shadow color: #6B8AFF at 30% opacity (used for blue buttons, currently unused)
-  static const Color _shadowColorStrong = Color(0x4D6B8AFF);
-
   /// Card shadow — used on course cards (home screen)
   /// Design: offset (0, 8), blurRadius 32, spread 0
   static const List<BoxShadow> card = [
