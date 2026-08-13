@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:charset/charset.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/course.dart';
 import 'csv_parser.dart';
@@ -112,28 +113,34 @@ class StorageService {
 
   // ── CSV Parsing ──
 
-  /// Parse CSV file bytes. The CSV must be:
-  ///   1. Open .xls in Excel/WPS
-  ///   2. File → Save As → CSV UTF-8 (.csv)
-  ///   3. Import the resulting .csv file in the app
+  /// Decode CSV bytes with encoding fallback:
+  /// the教务平台 exports GBK-encoded CSVs; users may also save UTF-8.
+  /// Try UTF-8 strictly first, fall back to GBK when invalid.
+  static String decodeCsvText(List<int> bytes) {
+    String text;
+    try {
+      text = utf8.decode(bytes);
+    } on FormatException {
+      try {
+        text = gbk.decode(bytes);
+      } on FormatException {
+        // Last resort: replace invalid sequences so parsing can still run.
+        text = utf8.decode(bytes, allowMalformed: true);
+      }
+    }
+    if (text.startsWith('\uFEFF')) text = text.substring(1);
+    return text;
+  }
+
+  /// Parse CSV file bytes. Accepts:
+  ///   1. UTF-8 CSV (Excel/WPS "Save As → CSV UTF-8")
+  ///   2. GBK CSV (教务平台 original export encoding)
   static List<Course> parseXlsFromBytes(List<int> bytes) {
-
-    // Convert bytes to text for CSV parsing
-    var text = utf8.decode(bytes);
-    if (text.startsWith('﻿')) text = text.substring(1);
-
-    // Route to CSV parser
-    return ScheduleCsvParser.parse(text);
+    return ScheduleCsvParser.parse(decodeCsvText(bytes));
   }
 
   static String? parseSemesterInfo(List<int> bytes) {
-
-    // Convert bytes to text
-    var text = utf8.decode(bytes);
-    if (text.startsWith('﻿')) text = text.substring(1);
-
-    // Route to CSV parser
-    return ScheduleCsvParser.extractSemesterInfo(text);
+    return ScheduleCsvParser.extractSemesterInfo(decodeCsvText(bytes));
   }
 
   // ── Notification Settings ──

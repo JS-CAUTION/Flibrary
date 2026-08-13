@@ -16,13 +16,18 @@ import '../models/course.dart';
 class ScheduleCsvParser {
   static List<Course> parse(String csvText) {
     // Strip BOM if present
-    final cleaned = csvText.startsWith('﻿') ? csvText.substring(1) : csvText;
+    final cleaned = csvText.startsWith('\uFEFF') ? csvText.substring(1) : csvText;
     final rows = _splitCsv(cleaned);
     if (rows.length < 3) return [];
 
+    // Day-of-week column mapping. Real教务 CSVs place Sun..Sat at columns
+    // 2..8 (col 0 = slot label, col 1 = spacer); legacy files may use 1..7.
+    // Detect from the header row so both layouts work.
+    final dayCols = _detectDayColumns(rows) ?? const [1, 2, 3, 4, 5, 6, 7];
+
     final courses = <Course>[];
 
-    for (int r = 2; r < rows.length; r++) {
+    for (int r = 0; r < rows.length; r++) {
       final row = rows[r];
       // Skip empty or whitespace-only rows
       if (row.isEmpty || row.every((c) => c.trim().isEmpty)) continue;
@@ -35,11 +40,12 @@ class ScheduleCsvParser {
         final periodStart = (slotNum - 1) * 2 + 1;
         final periodEnd = slotNum * 2;
 
-        // Columns 1-7 = Sun (0) through Sat (6)
-        for (int col = 1; col <= 7 && col < row.length; col++) {
+        for (int day = 0; day < 7; day++) {
+          final col = dayCols[day];
+          if (col >= row.length) continue;
           final cellText = row[col].trim();
           if (cellText.isEmpty) continue;
-          final parsed = _parseCellMulti(cellText, col - 1, periodStart, periodEnd, courses.length);
+          final parsed = _parseCellMulti(cellText, day, periodStart, periodEnd, courses.length);
           courses.addAll(parsed);
         }
       } else if (firstCol.contains('备注') || row.any((c) => c.contains('备注'))) {
@@ -53,6 +59,33 @@ class ScheduleCsvParser {
     }
 
     return _deduplicate(courses);
+  }
+
+  /// Detect which CSV column holds each weekday from the header row
+  /// (e.g. `,,星期日,星期一,...` → [2,3,4,5,6,7,8];
+  ///  `,日,一,二,三,四,五,六` → [1,2,3,4,5,6,7]).
+  /// Returns null when no header row is found.
+  static List<int>? _detectDayColumns(List<List<String>> rows) {
+    const dayIndex = {'日': 0, '天': 0, '一': 1, '二': 2, '三': 3, '四': 4, '五': 5, '六': 6};
+    final headerPattern = RegExp(r'^(?:星期|周)?([日一二三四五六天])$');
+
+    for (final row in rows) {
+      final colToDay = <int, int>{};
+      for (int c = 0; c < row.length; c++) {
+        final m = headerPattern.firstMatch(row[c].trim());
+        if (m != null) colToDay[c] = dayIndex[m.group(1)]!;
+      }
+      // A header row must carry most of the week (>=5) to avoid
+      // misinterpreting course cells as day labels.
+      if (colToDay.length >= 5) {
+        final result = List<int?>.filled(7, null);
+        colToDay.forEach((col, day) {
+          if (day >= 0 && day < 7) result[day] = col;
+        });
+        if (result.every((e) => e != null)) return result.cast<int>();
+      }
+    }
+    return null;
   }
 
   /// Parse a cell that may contain 1 or 2 courses.
