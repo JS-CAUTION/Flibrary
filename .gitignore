@@ -49,3 +49,7 @@ app.*.map.json
 
 # AI-assisted development plans (not project docs)
 /docs/superpowers/
+
+# Reasonix local metadata (desktop topics, MCP permissions)
+.reasonix/
+reasonix.toml

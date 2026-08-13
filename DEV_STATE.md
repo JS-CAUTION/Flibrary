@@ -39,11 +39,12 @@
 - ✅ Dead code removed: notification_center_screen, push_notification_screen, status_bar, app_card
 - ✅ Unused dependencies removed: sqflite
 - ✅ AlarmManager legacy code removed: AlarmReceiver.kt, BootReceiver.kt, scheduleAlarm/cancelAlarm handlers
+- ✅ debugFireNow debug button removed (v1.2 dead-code cleanup, confirmed by grep)
+- ✅ Notification copy cleaned: no emoji, simple ` · ` separators (纯文本"课程提醒"/"正在上课"/"即将上课")
+- ✅ Test suite green: 24/24 — fixed 2 legacy-broken CSV parser tests (test data didn't match real 8-column CSV layout; rewritten with quoted multiline cells + time label in col 0)
 
 ## Pending
-- ⬜ Verify timed notification delivery (changing phone time may not trigger due to Android doze)
-- ⬜ Remove debugFireNow before release
-- ⬜ Fix notification content to remove emoji/use simpler separators (Android emoji rendering varies)
+- ⬜ Verify timed notification delivery (changing phone time may not trigger due to Android doze) — code reviewed: Timer aligned to :00/:30 wall-clock, foreground service anchor; needs real-device test
 - ⬜ Real-world notification test — wait for actual class time
 
 ## Project Files
@@ -76,11 +77,13 @@ lib/
 │   ├── course_card.dart               # Course card widget
 │   ├── course_detail_sheet.dart       # Bottom sheet detail view
 │   ├── edit_course_screen_wire.dart   # Add/edit course form wrapper
+│   ├── edge_aware_physics.dart        # Inner week PageView physics: at week 1/20 passes swipe outward to parent
 │   └── settings_row.dart              # Settings row + card widget
 └── screens/
+    ├── main_screen.dart                # Root scaffold: fade-transition content switcher (home/schedule)
     ├── home_screen.dart               # Today's courses (home)
     ├── schedule_screen.dart           # Schedule grid (PageView, weeks 1-20)
-    ├── settings_screen.dart           # Settings + debug notification button
+    ├── settings_screen.dart           # Settings (debug notification button removed in v1.2)
     ├── import_screen.dart             # CSV import with preview
     ├── edit_course_screen.dart        # Edit course form
     ├── custom_screen.dart             # Preset management
