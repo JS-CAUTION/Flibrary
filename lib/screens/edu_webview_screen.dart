@@ -12,13 +12,13 @@ import 'import_screen.dart';
 /// 教务在线导入 — 内置 WebView 浏览器。
 ///
 /// 用户在校内浏览器自行登录教务 → 「学期理论课表」页,
-/// 点底部「确认导入当前课表」→ 注入 JS 提取 DOM → 复用 ImportScreen 预览。
+/// 点底部「导入课表」→ 注入 JS 提取 DOM → 复用 ImportScreen 预览。
 ///
-/// 学校网站没有手机端,本屏伪装桌面 Chrome UA + 开启宽视口与捏合缩放,
-/// 让桌面版页面在手机上可用。
+/// 学校网站没有手机端,本屏伪装桌面 Chrome UA + 开启宽视口与捏合缩放。
 ///
-/// 账密存储:底部「记住账号密码」开关(默认关)。开启后实时捕获输入框值,
-/// 登录跳离登录页时写入 Keystore;再次进入登录页自动填充(验证码手输)。
+/// 账密:底部「记住」开关开启后实时捕获输入框值,登录跳离登录页时写入
+/// Keystore;「填充」按钮手动把已存账密填入登录表单(验证码手输)。
+/// 不自动填充——支持登录其他同学的账号。
 class EduWebViewScreen extends StatefulWidget {
   const EduWebViewScreen({super.key});
 
@@ -74,7 +74,7 @@ class _EduWebViewScreenState extends State<EduWebViewScreen> {
     await android.setTextZoom(80);
   }
 
-  /// 有已存凭证时自动亮起「记住账密」开关。
+  /// 有已存凭证时亮起「记住」按钮状态(不自动填充)。
   Future<void> _loadSavedCredential() async {
     final account = await CredentialStorageService.loadAccountOnly();
     if (account != null && mounted) {
@@ -90,7 +90,7 @@ class _EduWebViewScreenState extends State<EduWebViewScreen> {
     if (cred != null) _pendingCapture = cred;
   }
 
-  /// 页面加载完成:离开登录页时落盘暂存凭证;在登录页时注入捕获与填充。
+  /// 页面加载完成:离开登录页时落盘暂存凭证;在登录页时注入捕获监听。
   Future<void> _handlePageFinished(String url) async {
     final leftLoginPage = !url.contains('Logon.do');
     if (leftLoginPage && _pendingCapture != null && _rememberCredential) {
@@ -106,27 +106,45 @@ class _EduWebViewScreenState extends State<EduWebViewScreen> {
           .runJavaScriptReturningResult(EduLoginScripts.isLoginPageScript);
       final raw = probe is String ? probe : '';
       if (raw.trim().replaceAll('"', '') != 'yes') return;
-      await _injectCaptureAndFill();
+      await _injectCapture();
     } catch (_) {}
   }
 
-  /// 注入输入捕获(幂等),已存凭证则同时自动填充。
-  Future<void> _injectCaptureAndFill() async {
+  /// 注入输入捕获监听(幂等)。
+  Future<void> _injectCapture() async {
     try {
       await _controller.runJavaScript(EduLoginScripts.captureScript);
-      final saved = await CredentialStorageService.load();
-      if (saved != null) {
-        await _controller.runJavaScript(
-          EduLoginScripts.fillScript(saved.account, saved.password),
-        );
-      }
     } catch (_) {}
   }
 
+  /// 「填充」按钮:把已存账密填入当前登录表单(不自动填充)。
+  Future<void> _fillCredential() async {
+    final saved = await CredentialStorageService.load();
+    if (saved == null) {
+      _showHint('尚未保存账号密码——打开「记住」并登录一次即可保存');
+      return;
+    }
+    try {
+      final result = await _controller.runJavaScriptReturningResult(
+        EduLoginScripts.fillScript(saved.account, saved.password),
+      );
+      final raw = result is String ? result : '';
+      if (raw.trim().replaceAll('"', '') == 'no_form') {
+        _showHint('当前页面没有登录表单');
+      } else {
+        _showHint('已填充账号 ${saved.account}，请输入验证码登录');
+      }
+    } catch (_) {
+      _showHint('填充失败，请重试');
+    }
+  }
+
+  /// 「记住」开关:开=捕获并在登录后保存;关=清除已存凭证。
   Future<void> _onToggleRemember(bool on) async {
     setState(() => _rememberCredential = on);
     if (on) {
-      await _injectCaptureAndFill();
+      await _injectCapture();
+      _showHint('已开启记住——登录后将保存账号密码');
     } else {
       _pendingCapture = null;
       await CredentialStorageService.clear();
@@ -224,56 +242,190 @@ class _EduWebViewScreenState extends State<EduWebViewScreen> {
               child: WebViewWidget(controller: _controller),
             ),
 
-            // ── 记住账密开关 ──
+            // ── 底部操作区: 记住 | 填充 | 导入课表 ──
             Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.contentPadding,
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    '记住账号密码（验证码仍需手动输入）',
-                    style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
-                  ),
-                  Switch(
-                    value: _rememberCredential,
-                    activeTrackColor: AppColors.blue,
-                    onChanged: _onToggleRemember,
-                  ),
-                ],
-              ),
-            ),
-
-            // ── 底部悬浮按钮区 ──
-            Container(
               padding: const EdgeInsets.fromLTRB(
                 AppSpacing.contentPadding,
                 AppSpacing.sm,
                 AppSpacing.contentPadding,
                 AppSpacing.md,
               ),
-              child: SizedBox(
-                width: double.infinity,
-                child: FilledButton(
-                  onPressed: _extracting ? null : _extractAndPreview,
-                  style: FilledButton.styleFrom(
-                    backgroundColor: AppColors.blue,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: _RememberButton(
+                      active: _rememberCredential,
+                      onTap: () => _onToggleRemember(!_rememberCredential),
                     ),
                   ),
-                  child: Text(
-                    _extracting ? '正在提取课表…' : '确认导入当前课表',
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _FillButton(onTap: _fillCredential),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _ImportButton(
+                      extracting: _extracting,
+                      onTap: _extractAndPreview,
                     ),
                   ),
-                ),
+                ],
               ),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// 「记住」按钮 — 状态切换,开启时高亮。
+class _RememberButton extends StatelessWidget {
+  const _RememberButton({required this.active, required this.onTap});
+
+  final bool active;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return _BottomBarButton(
+      onTap: onTap,
+      icon: Icon(
+        active ? Icons.bookmark : Icons.bookmark_border,
+        size: 20,
+        color: active ? AppColors.blue : AppColors.textSecondary,
+      ),
+      label: Text(
+        '记住',
+        style: TextStyle(
+          fontSize: 13,
+          fontWeight: FontWeight.w600,
+          color: active ? AppColors.blue : AppColors.textSecondary,
+        ),
+      ),
+      background: active ? const Color(0xFFE8F0FF) : const Color(0xFFF5F5F8),
+      border: Border.all(
+        color: active ? AppColors.blue.withValues(alpha: 0.5) : Colors.transparent,
+      ),
+    );
+  }
+}
+
+/// 「填充」按钮 — 手动把已存账密填入登录表单。
+class _FillButton extends StatelessWidget {
+  const _FillButton({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return _BottomBarButton(
+      onTap: onTap,
+      icon: const Icon(Icons.person_pin_circle_outlined,
+          size: 20, color: AppColors.textSecondary),
+      label: const Text(
+        '填充',
+        style: TextStyle(
+          fontSize: 13,
+          fontWeight: FontWeight.w600,
+          color: AppColors.textSecondary,
+        ),
+      ),
+      background: const Color(0xFFF5F5F8),
+      border: Border.all(color: Colors.transparent),
+    );
+  }
+}
+
+/// 「导入课表」按钮 — 渐变科技感主按钮。
+class _ImportButton extends StatelessWidget {
+  const _ImportButton({required this.extracting, required this.onTap});
+
+  final bool extracting;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: extracting ? null : onTap,
+      child: Container(
+        height: 46,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: extracting
+                ? [const Color(0xFF9DB8E8), const Color(0xFFB8C8EC)]
+                : const [Color(0xFF2E7BFF), Color(0xFF00C6FF)],
+          ),
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: extracting
+              ? null
+              : [
+                  BoxShadow(
+                    color: AppColors.blue.withValues(alpha: 0.35),
+                    blurRadius: 10,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              extracting ? Icons.hourglass_top : Icons.auto_awesome,
+              size: 18,
+              color: Colors.white,
+            ),
+            const SizedBox(width: 6),
+            Text(
+              extracting ? '提取中' : '导入课表',
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                color: Colors.white,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// 底部通用按钮外壳(统一高度/圆角)。
+class _BottomBarButton extends StatelessWidget {
+  const _BottomBarButton({
+    required this.onTap,
+    required this.icon,
+    required this.label,
+    required this.background,
+    required this.border,
+  });
+
+  final VoidCallback onTap;
+  final Widget icon;
+  final Widget label;
+  final Color background;
+  final Border border;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        height: 46,
+        decoration: BoxDecoration(
+          color: background,
+          borderRadius: BorderRadius.circular(12),
+          border: border,
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            icon,
+            const SizedBox(width: 5),
+            label,
           ],
         ),
       ),
