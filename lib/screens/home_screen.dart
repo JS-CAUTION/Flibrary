@@ -123,9 +123,11 @@ class _HomeScreenState extends State<HomeScreen> {
         children: [
           _buildEmptyIllustration(),
           const SizedBox(height: AppSpacing.lg),
-          Text('今天没有课程', style: AppTypography.bodySecondary),
+          Text('今天没有课程',
+              style: AppTypography.bodySecondary.copyWith(color: Colors.black)),
           const SizedBox(height: AppSpacing.sm),
-          Text('愉快的一天从没课开始 $emoji', style: AppTypography.caption),
+          Text('愉快的一天从没课开始 $emoji',
+              style: AppTypography.caption.copyWith(color: Colors.black)),
         ],
       ),
     );
