@@ -19,11 +19,24 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen>
     with SingleTickerProviderStateMixin {
-  /// 「今天没有课程」呼吸效果动画:黑 ↔ 半透明黑,周期循环。
+  /// 「今天没有课程」彩色呼吸效果:6 课程色循环渐变,呼应课程表选中边框色系。
   late final AnimationController _breathController = AnimationController(
     vsync: this,
-    duration: const Duration(milliseconds: 2200),
-  )..repeat(reverse: true);
+    duration: const Duration(milliseconds: 4200),
+  )..repeat();
+
+  /// 呼吸色:在课程 6 色间平滑循环(蓝→粉→黄→绿→紫→橙→蓝)。
+  Color _breathColor(double t) {
+    final colors = AppColors.courseColors;
+    final scaled = t * colors.length;
+    final index = scaled.floor() % colors.length;
+    final frac = scaled - scaled.floorToDouble();
+    return Color.lerp(
+      colors[index],
+      colors[(index + 1) % colors.length],
+      frac,
+    )!;
+  }
 
   @override
   void dispose() {
@@ -141,11 +154,7 @@ class _HomeScreenState extends State<HomeScreen>
             builder: (context, _) => Text(
               '今天没有课程',
               style: AppTypography.bodySecondary.copyWith(
-                color: Color.lerp(
-                  Colors.black,
-                  Colors.black.withValues(alpha: 0.25),
-                  _breathController.value,
-                ),
+                color: _breathColor(_breathController.value),
               ),
             ),
           ),
