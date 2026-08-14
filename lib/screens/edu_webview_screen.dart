@@ -308,8 +308,8 @@ class _EduWebViewScreenState extends State<EduWebViewScreen> {
           duration: const Duration(milliseconds: 750),
           backgroundColor: Colors.white,
           elevation: 3,
-          // 上移避开底部三按钮;左右窄边距使其更宽
-          margin: const EdgeInsets.fromLTRB(12, 0, 12, 84),
+          // 上移避开底部三按钮;左右留足边距(更窄更精致)
+          margin: const EdgeInsets.fromLTRB(32, 0, 32, 84),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
             side: const BorderSide(color: AppColors.divider),
