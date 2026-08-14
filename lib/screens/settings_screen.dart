@@ -170,6 +170,44 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   void _startImport(BuildContext context) {
+    final hasExisting = context.read<CourseProvider>().courses.isNotEmpty;
+    if (hasExisting) {
+      showDialog<int>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('导入新课表'),
+          content: const Text('检测到已有课程数据，请选择导入方式：'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, 0),
+              child: const Text('取消'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, 2),
+              child: const Text('直接导入'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, 1),
+              style: TextButton.styleFrom(foregroundColor: AppColors.danger),
+              child: const Text('清空并导入'),
+            ),
+          ],
+        ),
+      ).then((action) {
+        if (action == 0 || action == null || !context.mounted) return;
+        if (action == 1) {
+          context.read<CourseProvider>().clearAllCourses();
+          context.read<SemesterProvider>().reset();
+          StorageService.deleteAllData();
+        }
+        _pickImportSource(context);
+      });
+    } else {
+      _pickImportSource(context);
+    }
+  }
+
+  void _pickImportSource(BuildContext context) {
     showModalBottomSheet<_ImportSource>(
       context: context,
       builder: (ctx) => SafeArea(
@@ -202,47 +240,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
       ),
     ).then((source) {
       if (source == null || !context.mounted) return;
-      _handleExistingCourses(context, source);
-    });
-  }
-
-  void _handleExistingCourses(BuildContext context, _ImportSource source) {
-    final hasExisting = context.read<CourseProvider>().courses.isNotEmpty;
-    if (hasExisting) {
-      showDialog<int>(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          title: const Text('导入新课表'),
-          content: const Text('检测到已有课程数据，请选择导入方式：'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx, 0),
-              child: const Text('取消'),
-            ),
-            TextButton(
-              onPressed: () => Navigator.pop(ctx, 2),
-              child: const Text('直接导入'),
-            ),
-            TextButton(
-              onPressed: () => Navigator.pop(ctx, 1),
-              style: TextButton.styleFrom(foregroundColor: AppColors.danger),
-              child: const Text('清空并导入'),
-            ),
-          ],
-        ),
-      ).then((action) {
-        if (action == 1 && context.mounted) {
-          context.read<CourseProvider>().clearAllCourses();
-          context.read<SemesterProvider>().reset();
-          StorageService.deleteAllData();
-          _checkSemesterThenImport(context, source);
-        } else if (action == 2 && context.mounted) {
-          _checkSemesterThenImport(context, source);
-        }
-      });
-    } else {
       _checkSemesterThenImport(context, source);
-    }
+    });
   }
 
   void _checkSemesterThenImport(BuildContext context, _ImportSource source) {
