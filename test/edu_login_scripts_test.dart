@@ -54,19 +54,55 @@ void main() {
   });
 
   group('CredentialStorageService', () {
-    test('load returns null when secure storage is unavailable', () async {
-      // 单测环境无原生通道,容错后应静默返回 null 而非抛异常
-      final cred = await CredentialStorageService.load();
-      expect(cred, isNull);
+    test('loadSelected/loadAll degrade to empty when storage unavailable',
+        () async {
+      // 单测环境无原生通道,容错后应静默返回而非抛异常
+      expect(await CredentialStorageService.loadAll(), isEmpty);
+      expect(await CredentialStorageService.loadSelected(), isNull);
+      expect(await CredentialStorageService.loadSelectedAccount(), isNull);
+      expect(await CredentialStorageService.loadSaveEnabled(), isFalse);
     });
 
-    test('save/clear do not throw without native channel', () async {
+    test('save/delete/clearAll/setSelected do not throw without native channel',
+        () async {
       await CredentialStorageService.save('202408060135', 'secret');
-      await CredentialStorageService.clear();
+      await CredentialStorageService.setSelected('202408060135');
+      await CredentialStorageService.delete('202408060135');
+      await CredentialStorageService.clearAll();
+      await CredentialStorageService.setSaveEnabled(true);
     });
 
-    test('loadAccountOnly returns null when unavailable', () async {
-      expect(await CredentialStorageService.loadAccountOnly(), isNull);
+    test('mergeCredentials overwrites same account and puts it first', () {
+      final list = [
+        {'account': 'A1', 'password': 'old', 'updatedAt': ''},
+        {'account': 'B2', 'password': 'b', 'updatedAt': ''},
+      ];
+      final merged = CredentialStorageService.mergeCredentials(
+          list, {'account': 'A1', 'password': 'new', 'updatedAt': ''});
+      expect(merged.length, 2);
+      expect(merged.first['account'], 'A1');
+      expect(merged.first['password'], 'new');
+    });
+
+    test('mergeCredentials appends new account at front', () {
+      final merged = CredentialStorageService.mergeCredentials(
+          [{'account': 'A1', 'password': 'a', 'updatedAt': ''}],
+          {'account': 'C3', 'password': 'c', 'updatedAt': ''});
+      expect(merged.length, 2);
+      expect(merged.first['account'], 'C3');
+    });
+
+    test('encodeList/decodeList round-trip, corrupt input returns empty', () {
+      final list = [
+        {'account': 'A1', 'password': 'p"w', 'updatedAt': 't'},
+      ];
+      final decoded = CredentialStorageService.decodeList(
+          CredentialStorageService.encodeList(list));
+      expect(decoded, list);
+      expect(CredentialStorageService.decodeList('not json'), isEmpty);
+      expect(CredentialStorageService.decodeList('[]'), isEmpty);
+      // 缺字段的条目被过滤
+      expect(CredentialStorageService.decodeList('[{"account":""}]'), isEmpty);
     });
   });
 }

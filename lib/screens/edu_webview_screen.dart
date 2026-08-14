@@ -16,9 +16,10 @@ import 'import_screen.dart';
 ///
 /// 学校网站没有手机端,本屏伪装桌面 Chrome UA + 开启宽视口与捏合缩放。
 ///
-/// 账密:底部「记住」开关开启后实时捕获输入框值,登录跳离登录页时写入
-/// Keystore;「填充」按钮手动把已存账密填入登录表单(验证码手输)。
-/// 不自动填充——支持登录其他同学的账号。
+/// 账密交互(多账号):
+/// - 右上角「保存」开关:控制登录时是否保存账密(状态持久化,默认关)
+/// - 左下「账密：0135」按钮:点击展开已存账密列表,选择/删除;后缀跟随所选
+/// - 中间「填充」:把所选账密填入登录表单(不自动填充,验证码手输)
 class EduWebViewScreen extends StatefulWidget {
   const EduWebViewScreen({super.key});
 
@@ -39,8 +40,10 @@ class _EduWebViewScreenState extends State<EduWebViewScreen> {
   bool _extracting = false;
   int _loadProgress = 0;
 
-  // ── 账密存储状态 ──
-  bool _rememberCredential = false;
+  // ── 账密状态 ──
+  bool _saveEnabled = false; // 「登录时保存」开关(持久化,默认关)
+  String? _selectedAccount; // 当前选中账号(持久化)
+  List<({String account, String password})> _credentials = [];
   ({String account, String password})? _pendingCapture;
 
   @override
@@ -61,7 +64,7 @@ class _EduWebViewScreenState extends State<EduWebViewScreen> {
       ))
       ..loadRequest(Uri.parse(_startUrl));
     _configureDesktopBrowsing();
-    _loadSavedCredential();
+    _loadSavedState();
   }
 
   /// 桌面网站适配:宽视口 + 捏合缩放。
@@ -74,18 +77,23 @@ class _EduWebViewScreenState extends State<EduWebViewScreen> {
     await android.setTextZoom(80);
   }
 
-  /// 有已存凭证时亮起「记住」按钮状态(不自动填充)。
-  Future<void> _loadSavedCredential() async {
-    final account = await CredentialStorageService.loadAccountOnly();
-    if (account != null && mounted) {
-      setState(() => _rememberCredential = true);
-    }
+  /// 恢复持久化状态:开关、账密列表、选中账号。
+  Future<void> _loadSavedState() async {
+    final enabled = await CredentialStorageService.loadSaveEnabled();
+    final credentials = await CredentialStorageService.loadAll();
+    final selected = await CredentialStorageService.loadSelectedAccount();
+    if (!mounted) return;
+    setState(() {
+      _saveEnabled = enabled;
+      _credentials = credentials;
+      _selectedAccount = selected;
+    });
   }
 
-  // ── 账密捕获/保存/填充 ──
+  // ── 账密捕获/保存 ──
 
   void _onCredentialMessage(JavaScriptMessage message) {
-    if (!_rememberCredential) return;
+    if (!_saveEnabled) return;
     final cred = EduLoginScripts.parseCaptureMessage(message.message);
     if (cred != null) _pendingCapture = cred;
   }
@@ -93,13 +101,14 @@ class _EduWebViewScreenState extends State<EduWebViewScreen> {
   /// 页面加载完成:离开登录页时落盘暂存凭证;在登录页时注入捕获监听。
   Future<void> _handlePageFinished(String url) async {
     final leftLoginPage = !url.contains('Logon.do');
-    if (leftLoginPage && _pendingCapture != null && _rememberCredential) {
+    if (leftLoginPage && _pendingCapture != null && _saveEnabled) {
       final cred = _pendingCapture!;
       _pendingCapture = null;
       await CredentialStorageService.save(cred.account, cred.password);
+      await _loadSavedState(); // 刷新列表 + 选中(保存后自动选中)
       return;
     }
-    if (!_rememberCredential) return;
+    if (!_saveEnabled) return;
 
     try {
       final probe = await _controller
@@ -117,38 +126,118 @@ class _EduWebViewScreenState extends State<EduWebViewScreen> {
     } catch (_) {}
   }
 
-  /// 「填充」按钮:把已存账密填入当前登录表单(不自动填充)。
+  /// 「保存」开关:开=捕获并在登录后保存;关=停止捕获(不动已存账密)。
+  Future<void> _onToggleSave(bool on) async {
+    setState(() => _saveEnabled = on);
+    await CredentialStorageService.setSaveEnabled(on);
+    if (on) {
+      await _injectCapture();
+      _showHint('已开启——登录后将自动保存账密');
+    } else {
+      _pendingCapture = null;
+      _showHint('已关闭——登录时不再保存账密');
+    }
+  }
+
+  // ── 账密选择/填充 ──
+
+  /// 选中账号的按钮后缀(后四位)。
+  String get _selectedSuffix {
+    final account = _selectedAccount ?? '';
+    if (account.length < 4) return account.isEmpty ? '----' : account;
+    return account.substring(account.length - 4);
+  }
+
+  /// 「账密：0135」按钮:无账密提示;有账密展开列表选择/删除。
+  Future<void> _onPickCredential() async {
+    if (_credentials.isEmpty) {
+      _showHint('未储存账密');
+      return;
+    }
+    await showModalBottomSheet<void>(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Padding(
+              padding: EdgeInsets.fromLTRB(16, 14, 16, 4),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text('选择账密',
+                    style:
+                        TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+              ),
+            ),
+            for (final cred in _credentials)
+              ListTile(
+                leading: Icon(
+                  cred.account == _selectedAccount
+                      ? Icons.radio_button_checked
+                      : Icons.radio_button_off,
+                  color: cred.account == _selectedAccount
+                      ? AppColors.blue
+                      : AppColors.textSecondary,
+                ),
+                title: Text(cred.account),
+                onTap: () async {
+                  await CredentialStorageService.setSelected(cred.account);
+                  if (mounted) {
+                    setState(() => _selectedAccount = cred.account);
+                  }
+                  Navigator.pop(ctx);
+                },
+                trailing: IconButton(
+                  icon: const Icon(Icons.delete_outline,
+                      size: 20, color: AppColors.textSecondary),
+                  onPressed: () async {
+                    await CredentialStorageService.delete(cred.account);
+                    if (mounted) {
+                      final selected =
+                          await CredentialStorageService.loadSelectedAccount();
+                      setState(() {
+                        _credentials.removeWhere(
+                            (c) => c.account == cred.account);
+                        _selectedAccount = selected;
+                      });
+                    }
+                  },
+                ),
+              ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// 「填充」按钮:把当前选中账密填入登录表单。
   Future<void> _fillCredential() async {
-    final saved = await CredentialStorageService.load();
-    if (saved == null) {
-      _showHint('尚未保存账号密码——打开「记住」并登录一次即可保存');
+    if (_selectedAccount == null) {
+      _showHint('未选择账密');
+      return;
+    }
+    final selected = await CredentialStorageService.loadSelected();
+    if (selected == null) {
+      setState(() => _selectedAccount = null);
+      _showHint('未选择账密');
       return;
     }
     try {
       final result = await _controller.runJavaScriptReturningResult(
-        EduLoginScripts.fillScript(saved.account, saved.password),
+        EduLoginScripts.fillScript(selected.account, selected.password),
       );
       final raw = result is String ? result : '';
       if (raw.trim().replaceAll('"', '') == 'no_form') {
         _showHint('当前页面没有登录表单');
       } else {
-        _showHint('已填充账号 ${saved.account}，请输入验证码登录');
+        _showHint('已填充账号 ${selected.account}，请输入验证码登录');
       }
     } catch (_) {
       _showHint('填充失败，请重试');
-    }
-  }
-
-  /// 「记住」开关:开=捕获并在登录后保存;关=清除已存凭证。
-  Future<void> _onToggleRemember(bool on) async {
-    setState(() => _rememberCredential = on);
-    if (on) {
-      await _injectCapture();
-      _showHint('已开启记住——登录后将保存账号密码');
-    } else {
-      _pendingCapture = null;
-      await CredentialStorageService.clear();
-      _showHint('已清除保存的账号密码');
     }
   }
 
@@ -196,6 +285,8 @@ class _EduWebViewScreenState extends State<EduWebViewScreen> {
       ..showSnackBar(
         SnackBar(
           content: Text(message),
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 2),
           backgroundColor: AppColors.textPrimary,
         ),
       );
@@ -208,7 +299,7 @@ class _EduWebViewScreenState extends State<EduWebViewScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            // ── 顶部栏 ──
+            // ── 顶部栏: 返回 | 标题 | 「保存」开关 ──
             Padding(
               padding: const EdgeInsets.fromLTRB(
                 AppSpacing.contentPadding,
@@ -225,6 +316,20 @@ class _EduWebViewScreenState extends State<EduWebViewScreen> {
                   ),
                   const SizedBox(width: AppSpacing.md),
                   const Text('教务在线导入', style: AppTypography.pageTitle),
+                  const Spacer(),
+                  const Text(
+                    '保存',
+                    style:
+                        TextStyle(fontSize: 13, color: AppColors.textSecondary),
+                  ),
+                  Transform.scale(
+                    scale: 0.8,
+                    child: Switch(
+                      value: _saveEnabled,
+                      activeTrackColor: AppColors.blue,
+                      onChanged: _onToggleSave,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -242,7 +347,7 @@ class _EduWebViewScreenState extends State<EduWebViewScreen> {
               child: WebViewWidget(controller: _controller),
             ),
 
-            // ── 底部操作区: 记住 | 填充 | 导入课表 ──
+            // ── 底部操作区: 账密 | 填充 | 导入课表 ──
             Padding(
               padding: const EdgeInsets.fromLTRB(
                 AppSpacing.contentPadding,
@@ -253,14 +358,52 @@ class _EduWebViewScreenState extends State<EduWebViewScreen> {
               child: Row(
                 children: [
                   Expanded(
-                    child: _RememberButton(
-                      active: _rememberCredential,
-                      onTap: () => _onToggleRemember(!_rememberCredential),
+                    child: _BottomBarButton(
+                      onTap: _onPickCredential,
+                      icon: Icon(
+                        Icons.key,
+                        size: 18,
+                        color: _selectedAccount != null
+                            ? AppColors.blue
+                            : AppColors.textSecondary,
+                      ),
+                      label: Text(
+                        '账密：$_selectedSuffix',
+                        style: TextStyle(
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w600,
+                          color: _selectedAccount != null
+                              ? AppColors.blue
+                              : AppColors.textSecondary,
+                        ),
+                      ),
+                      background: _selectedAccount != null
+                          ? const Color(0xFFE8F0FF)
+                          : const Color(0xFFF5F5F8),
+                      border: Border.all(
+                        color: _selectedAccount != null
+                            ? AppColors.blue.withValues(alpha: 0.5)
+                            : Colors.transparent,
+                      ),
                     ),
                   ),
                   const SizedBox(width: 8),
                   Expanded(
-                    child: _FillButton(onTap: _fillCredential),
+                    child: _BottomBarButton(
+                      onTap: _fillCredential,
+                      icon: const Icon(Icons.person_pin_circle_outlined,
+                          size: 20, color: AppColors.textSecondary),
+                      label: const Text(
+                        '填充',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                      background: const Color(0xFFF5F5F8),
+                      border: Border.all(color: Colors.transparent),
+                    ),
                   ),
                   const SizedBox(width: 8),
                   Expanded(
@@ -275,64 +418,6 @@ class _EduWebViewScreenState extends State<EduWebViewScreen> {
           ],
         ),
       ),
-    );
-  }
-}
-
-/// 「记住」按钮 — 状态切换,开启时高亮。
-class _RememberButton extends StatelessWidget {
-  const _RememberButton({required this.active, required this.onTap});
-
-  final bool active;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return _BottomBarButton(
-      onTap: onTap,
-      icon: Icon(
-        active ? Icons.bookmark : Icons.bookmark_border,
-        size: 20,
-        color: active ? AppColors.blue : AppColors.textSecondary,
-      ),
-      label: Text(
-        '记住',
-        style: TextStyle(
-          fontSize: 13,
-          fontWeight: FontWeight.w600,
-          color: active ? AppColors.blue : AppColors.textSecondary,
-        ),
-      ),
-      background: active ? const Color(0xFFE8F0FF) : const Color(0xFFF5F5F8),
-      border: Border.all(
-        color: active ? AppColors.blue.withValues(alpha: 0.5) : Colors.transparent,
-      ),
-    );
-  }
-}
-
-/// 「填充」按钮 — 手动把已存账密填入登录表单。
-class _FillButton extends StatelessWidget {
-  const _FillButton({required this.onTap});
-
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return _BottomBarButton(
-      onTap: onTap,
-      icon: const Icon(Icons.person_pin_circle_outlined,
-          size: 20, color: AppColors.textSecondary),
-      label: const Text(
-        '填充',
-        style: TextStyle(
-          fontSize: 13,
-          fontWeight: FontWeight.w600,
-          color: AppColors.textSecondary,
-        ),
-      ),
-      background: const Color(0xFFF5F5F8),
-      border: Border.all(color: Colors.transparent),
     );
   }
 }
