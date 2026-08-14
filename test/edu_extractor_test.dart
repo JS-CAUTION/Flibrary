@@ -40,7 +40,7 @@ void main() {
       expect(courses.length, 1);
       final c = courses[0];
       expect(c.name, '物联网技术及安全');
-      expect(c.teacher, '包博文');
+      expect(c.teacher, '包博文(讲师)'); // 与 CSV 导入一致的括号职称格式
       expect(c.location, '金13-208');
       expect(c.dayOfWeek, 2); // hidden 编码 2 = 周二
       expect(c.startPeriod, 1);
@@ -115,7 +115,7 @@ void main() {
       expect(courses[0].endPeriod, 8);
     });
 
-    test('splits teacher titles of varying length', () {
+    test('formats teacher titles as 姓名(职称) matching CSV import', () {
       final result = scriptResult([
         {
           'cell': 2,
@@ -136,8 +136,8 @@ void main() {
       final c1 = courses.firstWhere((c) => c.name == '计算机网络原理与技术');
       final c2 = courses.firstWhere(
           (c) => c.name == '毛泽东思想和中国特色社会主义理论体系概论');
-      expect(c1.teacher, '熊兵');
-      expect(c2.teacher, '赵玲玲');
+      expect(c1.teacher, '熊兵(副教授)');
+      expect(c2.teacher, '赵玲玲(教授)');
     });
 
     test('returns empty on no_table error', () {

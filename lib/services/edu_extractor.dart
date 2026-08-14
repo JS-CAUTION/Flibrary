@@ -173,9 +173,9 @@ class EduExtractor {
     String location = '';
 
     for (final line in lines.skip(1)) {
-      final teacherName = _splitTeacher(line);
-      if (teacherName != null) {
-        teacher = teacherName;
+      final teacherFormatted = _formatTeacher(line);
+      if (teacherFormatted != null) {
+        teacher = teacherFormatted;
         continue;
       }
       final weekMatch = _weekPattern.firstMatch(line);
@@ -221,11 +221,13 @@ class EduExtractor {
     );
   }
 
-  /// 拆分「姓名+职称」连写字段,返回姓名;非教师行返回 null。
-  static String? _splitTeacher(String line) {
+  /// 拆分「姓名+职称」连写字段,拼成与 CSV 导入一致的括号格式
+  /// `姓名(职称)`(如 `包博文(讲师)`);非教师行返回 null。
+  static String? _formatTeacher(String line) {
     for (final suffix in _titleSuffixes) {
       if (line.endsWith(suffix) && line.length > suffix.length) {
-        return line.substring(0, line.length - suffix.length);
+        final name = line.substring(0, line.length - suffix.length);
+        return '$name($suffix)';
       }
     }
     return null;
