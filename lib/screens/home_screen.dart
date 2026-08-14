@@ -6,6 +6,7 @@ import '../theme/app_spacing.dart';
 import '../providers/course_provider.dart';
 import '../providers/semester_provider.dart';
 import '../widgets/course_card.dart';
+import '../widgets/origami_crane.dart';
 
 /// 今日课程 — Home Screen
 /// Shows today's courses for the current week.
@@ -130,16 +131,11 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  /// 简约空状态插图:圆形渐变底 + 沙发(休息) + 呼应弥散背景的装饰点。
+  /// 简约空状态插图:圆形渐变底 + 折纸鹤(与 App 图标一致)。
   Widget _buildEmptyIllustration() {
-    Widget dot(double size, Color color) => Container(
-          width: size,
-          height: size,
-          decoration: BoxDecoration(shape: BoxShape.circle, color: color),
-        );
     return Container(
-      width: 104,
-      height: 104,
+      width: 116,
+      height: 116,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         gradient: const LinearGradient(
@@ -148,32 +144,7 @@ class _HomeScreenState extends State<HomeScreen> {
           colors: [Color(0xFFE8F0FF), Color(0xFFD6FFF5)],
         ),
       ),
-      child: Stack(
-        children: [
-          Center(
-            child: Icon(
-              Icons.weekend_outlined,
-              size: 46,
-              color: AppColors.blue.withValues(alpha: 0.72),
-            ),
-          ),
-          Positioned(
-            top: 20,
-            right: 22,
-            child: dot(7, AppColors.pink.withValues(alpha: 0.55)),
-          ),
-          Positioned(
-            bottom: 18,
-            left: 20,
-            child: dot(9, AppColors.blue.withValues(alpha: 0.28)),
-          ),
-          Positioned(
-            top: 30,
-            left: 26,
-            child: dot(4, AppColors.deepGold.withValues(alpha: 0.6)),
-          ),
-        ],
-      ),
+      child: const Center(child: OrigamiCrane(size: 72)),
     );
   }
 
