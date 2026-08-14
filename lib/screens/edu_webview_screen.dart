@@ -49,14 +49,13 @@ class _EduWebViewScreenState extends State<EduWebViewScreen> {
     _configureDesktopBrowsing();
   }
 
-  /// 桌面网站适配:宽视口 + 缩略浏览 + 捏合缩放(隐藏系统缩放按钮)。
+  /// 桌面网站适配:宽视口 + 捏合缩放。
+  /// 注: loadWithOverviewMode 在 webview_flutter_android 内部默认开启;
+  /// built-in zoom 按钮默认不显示(仅保留双指手势缩放)。
   Future<void> _configureDesktopBrowsing() async {
     final android = _controller.platform as AndroidWebViewController;
     await android.setUseWideViewPort(true);
-    await android.setLoadWithOverviewMode(true);
-    await android.setSupportZoom(true);
-    await android.setBuiltInZoomControls(true);
-    await android.setDisplayZoomControls(false);
+    await android.enableZoom(true);
     await android.setTextZoom(80);
   }
 
