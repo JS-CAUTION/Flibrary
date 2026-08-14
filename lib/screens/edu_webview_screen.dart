@@ -284,10 +284,22 @@ class _EduWebViewScreenState extends State<EduWebViewScreen> {
       ..hideCurrentSnackBar()
       ..showSnackBar(
         SnackBar(
-          content: Text(message),
+          content: Text(
+            message,
+            style: const TextStyle(
+              color: AppColors.textPrimary,
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
           behavior: SnackBarBehavior.floating,
           duration: const Duration(seconds: 2),
-          backgroundColor: AppColors.textPrimary,
+          backgroundColor: Colors.white,
+          elevation: 3,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+            side: const BorderSide(color: AppColors.divider),
+          ),
         ),
       );
   }
