@@ -22,7 +22,7 @@ class _HomeScreenState extends State<HomeScreen>
   /// 「今天没有课程」流动效果:六课程色渐变沿文字平移,彩色丝带流过文字。
   late final AnimationController _breathController = AnimationController(
     vsync: this,
-    duration: const Duration(milliseconds: 3200),
+    duration: const Duration(milliseconds: 6400),
   )..repeat();
 
   @override
@@ -143,8 +143,9 @@ class _HomeScreenState extends State<HomeScreen>
               return ShaderMask(
                 blendMode: BlendMode.srcIn,
                 shaderCallback: (bounds) => LinearGradient(
-                  begin: Alignment(-1 + t * 2, 0),
-                  end: Alignment(1 + t * 2, 0),
+                  // 渐变带 4 宽(每色段 2/3 文字宽),t 0→1 平移一个完整周期(4 宽)
+                  begin: Alignment(-2 + t * 4, 0),
+                  end: Alignment(2 + t * 4, 0),
                   // 末尾补回首色:带内最后一段"橙→蓝"渐变,
                   // 与平铺的下一周期开头(蓝)连续,消除边界硬切
                   colors: [
