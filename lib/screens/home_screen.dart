@@ -166,9 +166,9 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
-  /// 简约空状态插图:折纸鹤(与 App 图标一致),无底色。
+  /// 简约空状态插图:折纸鹤(与 App 图标一致),灰色调,无底色。
   Widget _buildEmptyIllustration() {
-    return const OrigamiCrane(size: 96);
+    return const OrigamiCrane(size: 96, gray: true);
   }
 
   String _greetingText(int dayOfWeek) {

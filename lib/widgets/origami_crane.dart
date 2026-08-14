@@ -5,20 +5,27 @@ import 'package:flutter/material.dart';
 /// 7 个多边形色块拼接而成(3 种蓝色调),直接用 CustomPainter 重绘,
 /// 无图片资源依赖,任意尺寸缩放清晰。
 class OrigamiCrane extends StatelessWidget {
-  const OrigamiCrane({super.key, this.size = 96});
+  const OrigamiCrane({super.key, this.size = 96, this.gray = false});
 
   final double size;
+
+  /// 灰色模式:三档蓝换成三档灰(保持明暗层次)。
+  final bool gray;
 
   @override
   Widget build(BuildContext context) {
     return CustomPaint(
       size: Size.square(size),
-      painter: _CranePainter(),
+      painter: _CranePainter(gray: gray),
     );
   }
 }
 
 class _CranePainter extends CustomPainter {
+  _CranePainter({required this.gray});
+
+  final bool gray;
+
   /// cranes.svg 的几何色块(viewBox 135.46667):
   /// (颜色, 多边形顶点)。相对坐标已折算为绝对坐标。
   static const List<(Color, List<Offset>)> _shapes = [
@@ -57,6 +64,18 @@ class _CranePainter extends CustomPainter {
     ),
   ];
 
+  /// 灰色模式配色:与原三档蓝一一对应(浅/中/深灰)。
+  static const Color _grayLight = Color(0xFFD0D0D0);
+  static const Color _grayMid = Color(0xFFB4B4B4);
+  static const Color _grayDark = Color(0xFF909090);
+
+  Color _colorOf(Color original) {
+    if (!gray) return original;
+    if (original == const Color(0xFF229BFF)) return _grayDark;
+    if (original == const Color(0xFF00C4FF)) return _grayLight;
+    return _grayMid;
+  }
+
   static const double _viewBox = 135.46667;
 
   @override
@@ -75,11 +94,12 @@ class _CranePainter extends CustomPainter {
         path.lineTo(p.dx * scale + offset.dx, p.dy * scale + offset.dy);
       }
       path.close();
-      paint.color = color;
+      paint.color = _colorOf(color);
       canvas.drawPath(path, paint);
     }
   }
 
   @override
-  bool shouldRepaint(covariant _CranePainter oldDelegate) => false;
+  bool shouldRepaint(covariant _CranePainter oldDelegate) =>
+      oldDelegate.gray != gray;
 }
