@@ -113,15 +113,65 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildEmptyState() {
+    // 彩蛋:晚上 7 点后太阳变月亮
+    final isNight = DateTime.now().hour >= 19;
+    final emoji = isNight ? '🌙' : '☀️';
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.free_breakfast, size: 64, color: AppColors.divider),
-          const SizedBox(height: AppSpacing.md),
+          _buildEmptyIllustration(),
+          const SizedBox(height: AppSpacing.lg),
           Text('今天没有课程', style: AppTypography.bodySecondary),
           const SizedBox(height: AppSpacing.sm),
-          Text('愉快的一天从没课开始 ☀️', style: AppTypography.caption),
+          Text('愉快的一天从没课开始 $emoji', style: AppTypography.caption),
+        ],
+      ),
+    );
+  }
+
+  /// 简约空状态插图:圆形渐变底 + 沙发(休息) + 呼应弥散背景的装饰点。
+  Widget _buildEmptyIllustration() {
+    Widget dot(double size, Color color) => Container(
+          width: size,
+          height: size,
+          decoration: BoxDecoration(shape: BoxShape.circle, color: color),
+        );
+    return Container(
+      width: 104,
+      height: 104,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFFE8F0FF), Color(0xFFD6FFF5)],
+        ),
+      ),
+      child: Stack(
+        children: [
+          Center(
+            child: Icon(
+              Icons.weekend_outlined,
+              size: 46,
+              color: AppColors.blue.withValues(alpha: 0.72),
+            ),
+          ),
+          Positioned(
+            top: 20,
+            right: 22,
+            child: dot(7, AppColors.pink.withValues(alpha: 0.55)),
+          ),
+          Positioned(
+            bottom: 18,
+            left: 20,
+            child: dot(9, AppColors.blue.withValues(alpha: 0.28)),
+          ),
+          Positioned(
+            top: 30,
+            left: 26,
+            child: dot(4, AppColors.deepGold.withValues(alpha: 0.6)),
+          ),
         ],
       ),
     );
