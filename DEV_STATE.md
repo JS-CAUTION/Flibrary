@@ -49,6 +49,14 @@
 - ✅ 导入流程复用: ImportScreen parameterized (initialCourses), 设置页导课入口弹菜单 (CSV/在线导入), 旧课表处理弹窗先于方式选择
 - ✅ 账密本地存储: flutter_secure_storage (Keystore 加密) + 记住账密开关 (实时 input 捕获 → 跳离登录页落盘) + 登录页自动填充 (验证码手输) + 设置页「已保存的教务账号」管理 (查看/清除)
 - ✅ 登录页调研: form#loginForm / #userAccount / #userPassword / #RANDOMCODE(图片验证码); login() 提交前清空输入框 → 捕获必须实时
+- ✅ 多账密交互(v1.5.2): 账密列表存储(同账号覆盖置顶) + 选中持久化 + 「账密：0135」按钮(后缀显示所选后四位,点击展开列表选择/删除,删空自动收起) + 手动「填充」按钮 + 右上角「保存」开关(持久化,默认关)控制登录时保存; 移除设置页账号条目
+- ✅ 账密捕获兜底(v1.5.4): input 事件 + 登录按钮点击 + 回车 + submit 三路兜底(覆盖浏览器自动填充无 input 事件的场景)
+- ✅ 导入页提示弹窗(v1.5.3~1.5.5): 浅色卡片式(白底深字圆角描边) + 0.75s + 上移(底部 84px)不遮挡三按钮 + 左右边距 32px
+- ✅ 网页后退按钮(v1.5.6): 顶部栏 ↶ 后退(无历史置灰); 调研结论: 强智 iframe 逐级后退会触发会话失效整窗跳登录页(服务端机制),故后退=主 frame goBack 回登录页
+- ✅ 快捷导入同步(v1.5.9): 课程表页入口与设置页同流程(旧课处理 → 导入方式菜单 → 学期检查)
+- ✅ 主界面空状态(v1.5.10~1.5.14): 移除「去添加课程」按钮(保留 header 日历入口); 折纸鹤插图 OrigamiCrane(CustomPaint 重绘 cranes.svg 7 色块,鲜艳暖色系 80% 透明度); 文字纯黑
+- ✅ 「今天没有课程」流动效果(v1.5.16~1.5.23): 六课程色渐变 ShaderMask 沿文字平移(TileMode.repeated 平铺无缝 + 末尾补回首色消除边界硬切),渐变带 4 宽每色段 2/3 文字宽,6.4s 周期
+- ✅ 彩蛋(v1.5.11): 空状态文案表情晚 7 点后 ☀️→🌙
 
 ## Pending
 - ⬜ Verify timed notification delivery (changing phone time may not trigger due to Android doze) — code reviewed: Timer aligned to :00/:30 wall-clock, foreground service anchor; needs real-device test
@@ -88,6 +96,7 @@ lib/
 │   ├── course_detail_sheet.dart       # Bottom sheet detail view
 │   ├── edit_course_screen_wire.dart   # Add/edit course form wrapper
 │   ├── edge_aware_physics.dart        # Inner week PageView physics: at week 1/20 passes swipe outward to parent
+│   ├── origami_crane.dart             # 折纸鹤 CustomPaint（cranes.svg 色块重绘，空状态插图）
 │   └── settings_row.dart              # Settings row + card widget
 └── screens/
     ├── main_screen.dart                # Root scaffold: fade-transition content switcher (home/schedule)
