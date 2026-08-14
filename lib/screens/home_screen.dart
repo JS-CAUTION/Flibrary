@@ -17,7 +17,20 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen>
+    with SingleTickerProviderStateMixin {
+  /// 「今天没有课程」呼吸效果动画:黑 ↔ 半透明黑,周期循环。
+  late final AnimationController _breathController = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 2200),
+  )..repeat(reverse: true);
+
+  @override
+  void dispose() {
+    _breathController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -123,8 +136,19 @@ class _HomeScreenState extends State<HomeScreen> {
         children: [
           _buildEmptyIllustration(),
           const SizedBox(height: AppSpacing.lg),
-          Text('今天没有课程',
-              style: AppTypography.bodySecondary.copyWith(color: Colors.black)),
+          AnimatedBuilder(
+            animation: _breathController,
+            builder: (context, _) => Text(
+              '今天没有课程',
+              style: AppTypography.bodySecondary.copyWith(
+                color: Color.lerp(
+                  Colors.black,
+                  Colors.black.withValues(alpha: 0.25),
+                  _breathController.value,
+                ),
+              ),
+            ),
+          ),
           const SizedBox(height: AppSpacing.sm),
           Text('愉快的一天从没课开始 $emoji',
               style: AppTypography.caption.copyWith(color: Colors.black)),
