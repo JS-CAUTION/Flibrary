@@ -131,21 +131,9 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  /// 简约空状态插图:圆形渐变底 + 折纸鹤(与 App 图标一致)。
+  /// 简约空状态插图:折纸鹤(与 App 图标一致),无底色。
   Widget _buildEmptyIllustration() {
-    return Container(
-      width: 116,
-      height: 116,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFFE8F0FF), Color(0xFFD6FFF5)],
-        ),
-      ),
-      child: const Center(child: OrigamiCrane(size: 72)),
-    );
+    return const OrigamiCrane(size: 96);
   }
 
   String _greetingText(int dayOfWeek) {
