@@ -12,8 +12,13 @@ import '../widgets/diffuse_background.dart';
 
 /// 导课 — Import Screen
 /// Supports XLS file import with preview before confirming.
+/// When [initialCourses] is provided (e.g. from the EduWebView flow),
+/// the screen skips file picking and opens directly in preview state.
 class ImportScreen extends StatefulWidget {
-  const ImportScreen({super.key});
+  const ImportScreen({super.key, this.initialCourses, this.initialSemesterInfo});
+
+  final List<Course>? initialCourses;
+  final String? initialSemesterInfo;
 
   @override
   State<ImportScreen> createState() => _ImportScreenState();
@@ -24,6 +29,15 @@ class _ImportScreenState extends State<ImportScreen> {
   String? _semesterInfo;
   String? _errorMessage;
   bool _importing = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.initialCourses != null) {
+      _previewCourses = widget.initialCourses;
+      _semesterInfo = widget.initialSemesterInfo;
+    }
+  }
 
   Future<void> _pickAndParseFile() async {
     setState(() {

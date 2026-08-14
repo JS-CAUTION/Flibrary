@@ -5,6 +5,7 @@ import 'screens/home_screen.dart';
 import 'screens/schedule_screen.dart';
 import 'screens/settings_screen.dart';
 import 'screens/import_screen.dart';
+import 'screens/edu_webview_screen.dart';
 import 'screens/edit_course_screen.dart';
 import 'screens/custom_screen.dart';
 import 'theme/app_theme.dart';
@@ -38,6 +39,8 @@ class CourseScheduleApp extends StatelessWidget {
             return _fadeRoute(const SettingsScreen());
           case '/import':
             return _fadeRoute(const ImportScreen());
+          case '/edu-webview':
+            return _fadeRoute(const EduWebViewScreen());
           case '/edit-course':
             return _fadeRoute(const EditCourseScreen());
           case '/custom':

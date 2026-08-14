@@ -21,6 +21,7 @@ dependencies:
   intl: ^0.20.2
   cupertino_icons: ^1.0.8
   charset: ^2.0.1
+  webview_flutter: ^4.14.1
 
 dev_dependencies:
   flutter_test:

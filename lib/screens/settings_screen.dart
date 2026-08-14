@@ -170,6 +170,43 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   void _startImport(BuildContext context) {
+    showModalBottomSheet<_ImportSource>(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Padding(
+              padding: EdgeInsets.fromLTRB(16, 16, 16, 4),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text('选择导入方式',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+              ),
+            ),
+            ListTile(
+              leading: const Icon(Icons.file_upload_outlined),
+              title: const Text('导入 CSV 文件'),
+              subtitle: const Text('Excel/WPS 另存为 CSV 后导入'),
+              onTap: () => Navigator.pop(ctx, _ImportSource.csv),
+            ),
+            ListTile(
+              leading: const Icon(Icons.language),
+              title: const Text('教务在线导入'),
+              subtitle: const Text('内置浏览器登录教务，直接提取课表'),
+              onTap: () => Navigator.pop(ctx, _ImportSource.online),
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    ).then((source) {
+      if (source == null || !context.mounted) return;
+      _handleExistingCourses(context, source);
+    });
+  }
+
+  void _handleExistingCourses(BuildContext context, _ImportSource source) {
     final hasExisting = context.read<CourseProvider>().courses.isNotEmpty;
     if (hasExisting) {
       showDialog<int>(
@@ -198,20 +235,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
           context.read<CourseProvider>().clearAllCourses();
           context.read<SemesterProvider>().reset();
           StorageService.deleteAllData();
-          _checkSemesterThenImport(context);
+          _checkSemesterThenImport(context, source);
         } else if (action == 2 && context.mounted) {
-          _checkSemesterThenImport(context);
+          _checkSemesterThenImport(context, source);
         }
       });
     } else {
-      _checkSemesterThenImport(context);
+      _checkSemesterThenImport(context, source);
     }
   }
 
-  void _checkSemesterThenImport(BuildContext context) {
+  void _checkSemesterThenImport(BuildContext context, _ImportSource source) {
     final sp = context.read<SemesterProvider>();
     if (sp.isSet) {
-      Navigator.pushNamed(context, '/import');
+      Navigator.pushNamed(
+        context,
+        source == _ImportSource.csv ? '/import' : '/edu-webview',
+      );
       return;
     }
 
@@ -331,3 +371,5 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 }
+
+enum _ImportSource { csv, online }
