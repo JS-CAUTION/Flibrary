@@ -1,52 +1,53 @@
 import 'package:flutter/material.dart';
 
-/// 折纸鹤图标 — 与 App 图标(cranes.svg)一致的几何色块鹤。
+/// 折纸鹤图标 — 与 App 图标(cranes.svg)同几何结构的色块鹤。
 ///
-/// 7 个多边形色块拼接而成(3 种蓝色调),直接用 CustomPainter 重绘,
-/// 无图片资源依赖,任意尺寸缩放清晰。
+/// 7 个多边形色块拼接而成,配色为蓝/青/蓝紫渐变系(比原图标三蓝更有层次),
+/// 整体 80% 透明度,直接 CustomPainter 重绘,任意尺寸缩放清晰。
 class OrigamiCrane extends StatelessWidget {
-  const OrigamiCrane({super.key, this.size = 96, this.gray = false});
+  const OrigamiCrane({super.key, this.size = 96});
 
   final double size;
-
-  /// 灰色模式:三档蓝换成三档灰(保持明暗层次)。
-  final bool gray;
 
   @override
   Widget build(BuildContext context) {
     return CustomPaint(
       size: Size.square(size),
-      painter: _CranePainter(gray: gray),
+      painter: const _CranePainter(),
     );
   }
 }
 
 class _CranePainter extends CustomPainter {
-  _CranePainter({required this.gray});
-
-  final bool gray;
+  const _CranePainter();
 
   /// cranes.svg 的几何色块(viewBox 135.46667):
-  /// (颜色, 多边形顶点)。相对坐标已折算为绝对坐标。
-  static const List<(Color, List<Offset>)> _shapes = [
+  /// (配色, 多边形顶点)。相对坐标已折算为绝对坐标。
+  /// 配色沿头部→尾部渐变: 青 → 蓝 → 蓝紫,整体 80% 透明度。
+  static const double _opacity = 0.8;
+  static const Color _cyan = Color(0xFF43C6F7); // 青(头颈/腹面)
+  static const Color _blue = Color(0xFF3D86F5); // 蓝(主翼/身体)
+  static const Color _indigo = Color(0xFF6A5BF0); // 蓝紫(尾羽/折痕)
+
+  static final List<(Color, List<Offset>)> _shapes = [
     (
-      Color(0xFF0088FA),
+      _blue,
       [Offset(111.30, 58.17), Offset(37.42, 125.32), Offset(108.38, 108.84)],
     ),
     (
-      Color(0xFF00C4FF),
+      _cyan,
       [Offset(127.97, 93.43), Offset(125.59, 78.13), Offset(120.40, 87.32)],
     ),
     (
-      Color(0xFF00C4FF),
+      _cyan,
       [Offset(111.30, 58.17), Offset(58.93, 10.74), Offset(62.54, 102.48)],
     ),
     (
-      Color(0xFF0088FA),
+      _blue,
       [Offset(125.59, 78.13), Offset(110.25, 76.39), Offset(108.38, 108.84)],
     ),
     (
-      Color(0xFF229BFF),
+      _indigo,
       [
         Offset(62.05, 89.96),
         Offset(62.54, 102.48),
@@ -55,26 +56,14 @@ class _CranePainter extends CustomPainter {
       ],
     ),
     (
-      Color(0xFF00C4FF),
+      _cyan,
       [Offset(78.36, 115.81), Offset(108.38, 108.84), Offset(84.90, 82.16)],
     ),
     (
-      Color(0xFF229BFF),
+      _indigo,
       [Offset(108.38, 108.84), Offset(111.30, 58.17), Offset(84.90, 82.16)],
     ),
   ];
-
-  /// 灰色模式配色:与原三档蓝一一对应(浅/中/深灰)。
-  static const Color _grayLight = Color(0xFFD0D0D0);
-  static const Color _grayMid = Color(0xFFB4B4B4);
-  static const Color _grayDark = Color(0xFF909090);
-
-  Color _colorOf(Color original) {
-    if (!gray) return original;
-    if (original == const Color(0xFF229BFF)) return _grayDark;
-    if (original == const Color(0xFF00C4FF)) return _grayLight;
-    return _grayMid;
-  }
 
   static const double _viewBox = 135.46667;
 
@@ -94,12 +83,11 @@ class _CranePainter extends CustomPainter {
         path.lineTo(p.dx * scale + offset.dx, p.dy * scale + offset.dy);
       }
       path.close();
-      paint.color = _colorOf(color);
+      paint.color = color.withValues(alpha: _opacity);
       canvas.drawPath(path, paint);
     }
   }
 
   @override
-  bool shouldRepaint(covariant _CranePainter oldDelegate) =>
-      oldDelegate.gray != gray;
+  bool shouldRepaint(covariant _CranePainter oldDelegate) => false;
 }
