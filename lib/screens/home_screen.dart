@@ -10,8 +10,7 @@ import '../widgets/course_card.dart';
 /// 今日课程 — Home Screen
 /// Shows today's courses for the current week.
 class HomeScreen extends StatefulWidget {
-  final VoidCallback? onNavigateToSchedule;
-  const HomeScreen({super.key, this.onNavigateToSchedule});
+  const HomeScreen({super.key});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -59,7 +58,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
                                   GestureDetector(
-                                    onTap: widget.onNavigateToSchedule ?? () => Navigator.pushNamed(context, '/schedule'),
+                                    onTap: () => Navigator.pushNamed(context, '/schedule'),
                                     child: const Icon(Icons.calendar_month_outlined, size: AppSpacing.iconSize),
                                   ),
                                   Text('今日课程', style: AppTypography.pageTitle),
@@ -123,15 +122,6 @@ class _HomeScreenState extends State<HomeScreen> {
           Text('今天没有课程', style: AppTypography.bodySecondary),
           const SizedBox(height: AppSpacing.sm),
           Text('愉快的一天从没课开始 ☀️', style: AppTypography.caption),
-          const SizedBox(height: AppSpacing.xl),
-          TextButton.icon(
-            onPressed: widget.onNavigateToSchedule != null
-                ? widget.onNavigateToSchedule
-                : () => Navigator.pushNamed(context, '/schedule'),
-            icon: const Icon(Icons.add, size: 18),
-            label: const Text('去添加课程'),
-            style: TextButton.styleFrom(foregroundColor: AppColors.blue),
-          ),
         ],
       ),
     );
