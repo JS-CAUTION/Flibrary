@@ -145,7 +145,12 @@ class _HomeScreenState extends State<HomeScreen>
                 shaderCallback: (bounds) => LinearGradient(
                   begin: Alignment(-1 + t * 2, 0),
                   end: Alignment(1 + t * 2, 0),
-                  colors: AppColors.courseColors,
+                  // 末尾补回首色:带内最后一段"橙→蓝"渐变,
+                  // 与平铺的下一周期开头(蓝)连续,消除边界硬切
+                  colors: [
+                    ...AppColors.courseColors,
+                    AppColors.courseColors.first,
+                  ],
                   // 平铺重复:渐变带移出文字后自动补下一周期,循环无缝
                   tileMode: TileMode.repeated,
                 ).createShader(bounds),
