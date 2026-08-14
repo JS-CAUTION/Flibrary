@@ -140,16 +140,14 @@ class _HomeScreenState extends State<HomeScreen>
             animation: _breathController,
             builder: (context, _) {
               final t = _breathController.value; // 0..1 单向循环
-              final colors = [
-                ...AppColors.courseColors,
-                AppColors.courseColors.first, // 首尾同色,循环无缝
-              ];
               return ShaderMask(
                 blendMode: BlendMode.srcIn,
                 shaderCallback: (bounds) => LinearGradient(
                   begin: Alignment(-1 + t * 2, 0),
                   end: Alignment(1 + t * 2, 0),
-                  colors: colors,
+                  colors: AppColors.courseColors,
+                  // 平铺重复:渐变带移出文字后自动补下一周期,循环无缝
+                  tileMode: TileMode.repeated,
                 ).createShader(bounds),
                 child: Text(
                   '今天没有课程',
