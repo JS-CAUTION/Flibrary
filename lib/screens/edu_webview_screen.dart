@@ -128,6 +128,7 @@ class _EduWebViewScreenState extends State<EduWebViewScreen> {
   /// 主 frame goBack 只会退回登录页。因此优先 iframe 内 history.back(),
   /// iframe 无可退历史时才退主 frame。
   Future<void> _goBackSmart() async {
+    await _diagnoseNavigation();
     const script = r'''
 (function() {
   var frames = document.querySelectorAll('iframe');
@@ -147,6 +148,7 @@ class _EduWebViewScreenState extends State<EduWebViewScreen> {
       final result =
           await _controller.runJavaScriptReturningResult(script);
       final raw = result is String ? result : '';
+      debugPrint('[back] script result: $raw');
       if (raw.contains('no_frame_history')) {
         if (await _controller.canGoBack()) {
           await _controller.goBack();
@@ -157,6 +159,38 @@ class _EduWebViewScreenState extends State<EduWebViewScreen> {
       if (await _controller.canGoBack()) {
         await _controller.goBack();
       }
+    }
+  }
+
+  /// 临时诊断:输出当前页面结构与 iframe 历史信息(定位后退问题后移除)。
+  Future<void> _diagnoseNavigation() async {
+    const script = r'''
+(function() {
+  var out = {url: location.href, mainLen: history.length, frames: []};
+  var fs = document.querySelectorAll('iframe');
+  out.frameCount = fs.length;
+  for (var i = 0; i < fs.length; i++) {
+    var f = fs[i];
+    try {
+      out.frames.push({
+        len: f.contentWindow.history.length,
+        url: String(f.contentWindow.location.href).substring(0, 120)
+      });
+    } catch (e) {
+      out.frames.push({error: String(e).substring(0, 80)});
+    }
+  }
+  return JSON.stringify(out);
+})();
+''';
+    try {
+      final result =
+          await _controller.runJavaScriptReturningResult(script);
+      final raw = result is String ? result : '';
+      debugPrint('[diag] $raw');
+      if (mounted) _showHint('诊断已输出到控制台');
+    } catch (e) {
+      debugPrint('[diag] failed: $e');
     }
   }
 
