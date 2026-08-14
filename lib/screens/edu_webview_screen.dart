@@ -154,61 +154,73 @@ class _EduWebViewScreenState extends State<EduWebViewScreen> {
       _showHint('未储存账密');
       return;
     }
+    // 局部列表副本:删除时在 sheet 内即时刷新(页面 setState 不会重建 sheet)。
+    final sheetCredentials = List.of(_credentials);
     await showModalBottomSheet<void>(
       context: context,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
-      builder: (ctx) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Padding(
-              padding: EdgeInsets.fromLTRB(16, 14, 16, 4),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: Text('选择账密',
-                    style:
-                        TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
-              ),
-            ),
-            for (final cred in _credentials)
-              ListTile(
-                leading: Icon(
-                  cred.account == _selectedAccount
-                      ? Icons.radio_button_checked
-                      : Icons.radio_button_off,
-                  color: cred.account == _selectedAccount
-                      ? AppColors.blue
-                      : AppColors.textSecondary,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheetState) => SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Padding(
+                padding: EdgeInsets.fromLTRB(16, 14, 16, 4),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text('选择账密',
+                      style: TextStyle(
+                          fontSize: 16, fontWeight: FontWeight.w600)),
                 ),
-                title: Text(cred.account),
-                onTap: () async {
-                  await CredentialStorageService.setSelected(cred.account);
-                  if (mounted) {
-                    setState(() => _selectedAccount = cred.account);
-                  }
-                  Navigator.pop(ctx);
-                },
-                trailing: IconButton(
-                  icon: const Icon(Icons.delete_outline,
-                      size: 20, color: AppColors.textSecondary),
-                  onPressed: () async {
-                    await CredentialStorageService.delete(cred.account);
+              ),
+              for (final cred in List.of(sheetCredentials))
+                ListTile(
+                  leading: Icon(
+                    cred.account == _selectedAccount
+                        ? Icons.radio_button_checked
+                        : Icons.radio_button_off,
+                    color: cred.account == _selectedAccount
+                        ? AppColors.blue
+                        : AppColors.textSecondary,
+                  ),
+                  title: Text(cred.account),
+                  onTap: () async {
+                    await CredentialStorageService.setSelected(cred.account);
                     if (mounted) {
-                      final selected =
-                          await CredentialStorageService.loadSelectedAccount();
-                      setState(() {
-                        _credentials.removeWhere(
-                            (c) => c.account == cred.account);
-                        _selectedAccount = selected;
-                      });
+                      setState(() => _selectedAccount = cred.account);
                     }
+                    Navigator.pop(ctx);
                   },
+                  trailing: IconButton(
+                    icon: const Icon(Icons.delete_outline,
+                        size: 20, color: AppColors.textSecondary),
+                    onPressed: () async {
+                      await CredentialStorageService.delete(cred.account);
+                      if (mounted) {
+                        final selected = await CredentialStorageService
+                            .loadSelectedAccount();
+                        setState(() {
+                          _credentials.removeWhere(
+                              (c) => c.account == cred.account);
+                          _selectedAccount = selected;
+                        });
+                      }
+                      sheetCredentials.removeWhere(
+                          (c) => c.account == cred.account);
+                      // sheet 内即时刷新;删空则自动收起
+                      if (sheetCredentials.isEmpty) {
+                        Navigator.pop(ctx);
+                      } else {
+                        setSheetState(() {});
+                      }
+                    },
+                  ),
                 ),
-              ),
-            const SizedBox(height: 8),
-          ],
+              const SizedBox(height: 8),
+            ],
+          ),
         ),
       ),
     );
@@ -293,9 +305,11 @@ class _EduWebViewScreenState extends State<EduWebViewScreen> {
             ),
           ),
           behavior: SnackBarBehavior.floating,
-          duration: const Duration(seconds: 2),
+          duration: const Duration(milliseconds: 750),
           backgroundColor: Colors.white,
           elevation: 3,
+          // 上移避开底部三按钮;左右窄边距使其更宽
+          margin: const EdgeInsets.fromLTRB(12, 0, 12, 84),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
             side: const BorderSide(color: AppColors.divider),

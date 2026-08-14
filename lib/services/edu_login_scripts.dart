@@ -40,7 +40,8 @@ class EduLoginScripts {
 
   /// 输入捕获脚本(幂等,只安装一次):
   /// - 监听 userAccount/userPassword 的 input 事件
-  /// - 表单 submit 时兜底再推一次
+  /// - 登录按钮点击 / 回车 / 表单 submit 时兜底再推一次
+  ///   (覆盖浏览器自动填充等不产生 input 事件的场景)
   /// - 经 `EduCredCapture.postMessage` 推送 {account, password}
   static const String captureScript = r'''
 (function() {
@@ -57,6 +58,11 @@ class EduLoginScripts {
   document.addEventListener('input', function(e) {
     var t = e.target;
     if (t && (t.id === 'userAccount' || t.id === 'userPassword')) push();
+  });
+  var btn = document.querySelector('button.login_btn');
+  if (btn) btn.addEventListener('click', push);
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' || e.keyCode === 13) push();
   });
   var f = document.getElementById('loginForm');
   if (f) f.addEventListener('submit', push);
