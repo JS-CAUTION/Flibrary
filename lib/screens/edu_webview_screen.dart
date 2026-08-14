@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
+import 'package:webview_flutter_android/webview_flutter_android.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_typography.dart';
 import '../theme/app_spacing.dart';
@@ -10,6 +11,9 @@ import 'import_screen.dart';
 ///
 /// 用户在校内浏览器自行登录 VPN → 教务 → 「学期理论课表」页,
 /// 点底部「确认导入当前课表」→ 注入 JS 提取 DOM → 复用 ImportScreen 预览。
+///
+/// 学校网站没有手机端,本屏伪装桌面 Chrome UA + 开启宽视口与捏合缩放,
+/// 让桌面版页面在手机上可用。
 class EduWebViewScreen extends StatefulWidget {
   const EduWebViewScreen({super.key});
 
@@ -18,8 +22,13 @@ class EduWebViewScreen extends StatefulWidget {
 }
 
 class _EduWebViewScreenState extends State<EduWebViewScreen> {
-  /// WebVPN 入口,登录后用户自行导航到教务课表页。
-  static const String _startUrl = 'https://vpn.csust.edu.cn';
+  /// 教学一体化平台直通入口,打开即账密登录页(校内直连)。
+  static const String _startUrl = 'http://xk.csust.edu.cn';
+
+  /// 伪装桌面 Chrome,让服务器返回桌面版页面。
+  static const String _desktopUserAgent =
+      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 '
+      '(KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36';
 
   late final WebViewController _controller;
   bool _extracting = false;
@@ -30,12 +39,25 @@ class _EduWebViewScreenState extends State<EduWebViewScreen> {
     super.initState();
     _controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
+      ..setUserAgent(_desktopUserAgent)
       ..setNavigationDelegate(NavigationDelegate(
         onProgress: (progress) {
           if (mounted) setState(() => _loadProgress = progress);
         },
       ))
       ..loadRequest(Uri.parse(_startUrl));
+    _configureDesktopBrowsing();
+  }
+
+  /// 桌面网站适配:宽视口 + 缩略浏览 + 捏合缩放(隐藏系统缩放按钮)。
+  Future<void> _configureDesktopBrowsing() async {
+    final android = _controller.platform as AndroidWebViewController;
+    await android.setUseWideViewPort(true);
+    await android.setLoadWithOverviewMode(true);
+    await android.setSupportZoom(true);
+    await android.setBuiltInZoomControls(true);
+    await android.setDisplayZoomControls(false);
+    await android.setTextZoom(80);
   }
 
   Future<void> _extractAndPreview() async {
@@ -108,7 +130,7 @@ class _EduWebViewScreenState extends State<EduWebViewScreen> {
                         size: AppSpacing.iconSize),
                   ),
                   const SizedBox(width: AppSpacing.md),
-                  Text('教务在线导入', style: AppTypography.pageTitle),
+                  const Text('教务在线导入', style: AppTypography.pageTitle),
                 ],
               ),
             ),
