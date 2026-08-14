@@ -19,24 +19,11 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen>
     with SingleTickerProviderStateMixin {
-  /// 「今天没有课程」彩色呼吸效果:6 课程色循环渐变,呼应课程表选中边框色系。
+  /// 「今天没有课程」流动效果:六课程色渐变沿文字平移,彩色丝带流过文字。
   late final AnimationController _breathController = AnimationController(
     vsync: this,
-    duration: const Duration(milliseconds: 4200),
+    duration: const Duration(milliseconds: 3200),
   )..repeat();
-
-  /// 呼吸色:在课程 6 色间平滑循环(蓝→粉→黄→绿→紫→橙→蓝)。
-  Color _breathColor(double t) {
-    final colors = AppColors.courseColors;
-    final scaled = t * colors.length;
-    final index = scaled.floor() % colors.length;
-    final frac = scaled - scaled.floorToDouble();
-    return Color.lerp(
-      colors[index],
-      colors[(index + 1) % colors.length],
-      frac,
-    )!;
-  }
 
   @override
   void dispose() {
@@ -151,12 +138,26 @@ class _HomeScreenState extends State<HomeScreen>
           const SizedBox(height: AppSpacing.lg),
           AnimatedBuilder(
             animation: _breathController,
-            builder: (context, _) => Text(
-              '今天没有课程',
-              style: AppTypography.bodySecondary.copyWith(
-                color: _breathColor(_breathController.value),
-              ),
-            ),
+            builder: (context, _) {
+              final t = _breathController.value; // 0..1 单向循环
+              final colors = [
+                ...AppColors.courseColors,
+                AppColors.courseColors.first, // 首尾同色,循环无缝
+              ];
+              return ShaderMask(
+                blendMode: BlendMode.srcIn,
+                shaderCallback: (bounds) => LinearGradient(
+                  begin: Alignment(-1 + t * 2, 0),
+                  end: Alignment(1 + t * 2, 0),
+                  colors: colors,
+                ).createShader(bounds),
+                child: Text(
+                  '今天没有课程',
+                  style: AppTypography.bodySecondary
+                      .copyWith(color: Colors.white),
+                ),
+              );
+            },
           ),
           const SizedBox(height: AppSpacing.sm),
           Text('愉快的一天从没课开始 $emoji',
