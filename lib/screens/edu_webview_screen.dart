@@ -124,76 +124,6 @@ class _EduWebViewScreenState extends State<EduWebViewScreen> {
     } catch (_) {}
   }
 
-  /// 浏览器后退(智能):强智的页面切换发生在 iframe 内部,
-  /// 主 frame goBack 只会退回登录页。因此优先 iframe 内 history.back(),
-  /// iframe 无可退历史时才退主 frame。
-  Future<void> _goBackSmart() async {
-    await _diagnoseNavigation();
-    const script = r'''
-(function() {
-  var frames = document.querySelectorAll('iframe');
-  for (var i = 0; i < frames.length; i++) {
-    var f = frames[i];
-    try {
-      if (f.contentWindow && f.contentWindow.history.length > 1) {
-        f.contentWindow.history.back();
-        return 'frame_back';
-      }
-    } catch (e) {}
-  }
-  return 'no_frame_history';
-})();
-''';
-    try {
-      final result =
-          await _controller.runJavaScriptReturningResult(script);
-      final raw = result is String ? result : '';
-      debugPrint('[back] script result: $raw');
-      if (raw.contains('no_frame_history')) {
-        if (await _controller.canGoBack()) {
-          await _controller.goBack();
-        }
-      }
-    } catch (_) {
-      // JS 失败(如跨域 iframe)时退主 frame
-      if (await _controller.canGoBack()) {
-        await _controller.goBack();
-      }
-    }
-  }
-
-  /// 临时诊断:输出当前页面结构与 iframe 历史信息(定位后退问题后移除)。
-  Future<void> _diagnoseNavigation() async {
-    const script = r'''
-(function() {
-  var out = {url: location.href, mainLen: history.length, frames: []};
-  var fs = document.querySelectorAll('iframe');
-  out.frameCount = fs.length;
-  for (var i = 0; i < fs.length; i++) {
-    var f = fs[i];
-    try {
-      out.frames.push({
-        len: f.contentWindow.history.length,
-        url: String(f.contentWindow.location.href).substring(0, 120)
-      });
-    } catch (e) {
-      out.frames.push({error: String(e).substring(0, 80)});
-    }
-  }
-  return JSON.stringify(out);
-})();
-''';
-    try {
-      final result =
-          await _controller.runJavaScriptReturningResult(script);
-      final raw = result is String ? result : '';
-      debugPrint('[diag] $raw');
-      if (mounted) _showHint('诊断已输出到控制台');
-    } catch (e) {
-      debugPrint('[diag] failed: $e');
-    }
-  }
-
   /// 注入输入捕获监听(幂等)。
   Future<void> _injectCapture() async {
     try {
@@ -416,9 +346,9 @@ class _EduWebViewScreenState extends State<EduWebViewScreen> {
                         size: AppSpacing.iconSize),
                   ),
                   const SizedBox(width: 12),
-                  // 浏览器网页后退(无历史时置灰)
+                  // 浏览器网页后退(无历史时置灰;点击回上一主页面)
                   GestureDetector(
-                    onTap: _canGoBack ? _goBackSmart : null,
+                    onTap: _canGoBack ? () => _controller.goBack() : null,
                     child: Icon(
                       Icons.arrow_circle_left_outlined,
                       size: AppSpacing.iconSize,
