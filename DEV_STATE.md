@@ -42,6 +42,13 @@
 - ✅ debugFireNow debug button removed (v1.2 dead-code cleanup, confirmed by grep)
 - ✅ Notification copy cleaned: no emoji, simple ` · ` separators (纯文本"课程提醒"/"正在上课"/"即将上课")
 - ✅ Test suite green: 24/24 — fixed 2 legacy-broken CSV parser tests (test data didn't match real 8-column CSV layout; rewritten with quoted multiline cells + time label in col 0)
+- ✅ CSV import encoding fallback: UTF-8 strict → GBK (charset package), 教务原始导出无需转码; real-file e2e 15 courses verified
+- ✅ CSV column mapping: day-of-week columns detected from header row (self-adaptive)
+- ✅ 教务在线导入: EduWebViewScreen (webview_flutter) — desktop UA + wide viewport + pinch zoom; 直通入口 xk.csust.edu.cn; INTERNET permission + cleartext whitelist (csust.edu.cn)
+- ✅ 课表提取: edu_extractor.dart — injection JS (iframe-aware kbtable extraction, innerHTML <br> handling) + Dart parser (multi-course split, odd/even weeks, 姓名(职称) format); Chrome headless verified on real DOM, 15/15 courses match CSV result
+- ✅ 导入流程复用: ImportScreen parameterized (initialCourses), 设置页导课入口弹菜单 (CSV/在线导入), 旧课表处理弹窗先于方式选择
+- ✅ 账密本地存储: flutter_secure_storage (Keystore 加密) + 记住账密开关 (实时 input 捕获 → 跳离登录页落盘) + 登录页自动填充 (验证码手输) + 设置页「已保存的教务账号」管理 (查看/清除)
+- ✅ 登录页调研: form#loginForm / #userAccount / #userPassword / #RANDOMCODE(图片验证码); login() 提交前清空输入框 → 捕获必须实时
 
 ## Pending
 - ⬜ Verify timed notification delivery (changing phone time may not trigger due to Android doze) — code reviewed: Timer aligned to :00/:30 wall-clock, foreground service anchor; needs real-device test
@@ -66,12 +73,15 @@ lib/
 │   ├── semester_provider.dart         # Semester first day + current week calc
 │   └── background_provider.dart       # Preset management
 ├── services/
-│   ├── database_service.dart          # SharedPreferences storage + CSV parse entry point
-│   ├── csv_parser.dart                # CSV parser (8-col grid, multi-course cell splitting)
+│   ├── database_service.dart          # SharedPreferences storage + CSV parse entry + GBK fallback
+│   ├── csv_parser.dart                # CSV parser (8-col grid, multi-course cell splitting, header-adaptive columns)
 │   ├── preset_storage_service.dart    # Independent preset storage
 │   ├── notification_service.dart      # Notification polling (Timer every 30s, Foreground Service)
 │   ├── native_alarm_service.dart      # MethodChannel bridge (fireImmediate, cancelNotification)
-│   └── foreground_service_manager.dart # Android Foreground Service start/stop
+│   ├── foreground_service_manager.dart # Android Foreground Service start/stop
+│   ├── edu_extractor.dart             # 教务在线导入: injection JS + Dart parser (kbtable DOM)
+│   ├── edu_login_scripts.dart         # 登录页检测/自动填充/输入捕获 JS
+│   └── credential_storage_service.dart # 教务账密 Keystore 加密存储
 ├── widgets/
 │   ├── diffuse_background.dart        # Background renderer (auto-loads preset on first build)
 │   ├── course_card.dart               # Course card widget
@@ -84,7 +94,8 @@ lib/
     ├── home_screen.dart               # Today's courses (home)
     ├── schedule_screen.dart           # Schedule grid (PageView, weeks 1-20)
     ├── settings_screen.dart           # Settings (debug notification button removed in v1.2)
-    ├── import_screen.dart             # CSV import with preview
+    ├── import_screen.dart             # CSV import with preview (also reused by online import)
+    ├── edu_webview_screen.dart        # 教务在线导入 WebView (桌面 UA/缩放/记住账密)
     ├── edit_course_screen.dart        # Edit course form
     ├── custom_screen.dart             # Preset management
     ├── circle_edit_screen.dart        # Circle editor

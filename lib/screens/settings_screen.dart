@@ -7,6 +7,7 @@ import '../providers/course_provider.dart';
 import '../providers/semester_provider.dart';
 import '../services/database_service.dart';
 import '../services/notification_service.dart';
+import '../services/credential_storage_service.dart';
 import '../widgets/diffuse_background.dart';
 import '../widgets/settings_row.dart';
 
@@ -19,16 +20,58 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   int _advanceMinutes = 15;
+  String? _savedEduAccount;
 
   @override
   void initState() {
     super.initState();
     _loadAdvanceMinutes();
+    _loadSavedAccount();
   }
 
   Future<void> _loadAdvanceMinutes() async {
     final m = await StorageService.getAdvanceMinutes();
     if (mounted) setState(() => _advanceMinutes = m);
+  }
+
+  Future<void> _loadSavedAccount() async {
+    final account = await CredentialStorageService.loadAccountOnly();
+    if (mounted) setState(() => _savedEduAccount = account);
+  }
+
+  /// 查看/清除已保存的教务账号(仅展示账号,不展示密码)。
+  Future<void> _manageSavedAccount(BuildContext context) async {
+    if (_savedEduAccount == null) return;
+    final action = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('已保存的教务账号'),
+        content: Text('账号：$_savedEduAccount\n密码：●●●●●●（仅存于本机加密存储）'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('关闭'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: TextButton.styleFrom(foregroundColor: AppColors.danger),
+            child: const Text('清除账号密码'),
+          ),
+        ],
+      ),
+    );
+    if (action == true) {
+      await CredentialStorageService.clear();
+      if (mounted) {
+        setState(() => _savedEduAccount = null);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('已清除保存的教务账号密码'),
+            backgroundColor: AppColors.green,
+          ),
+        );
+      }
+    }
   }
 
   @override
@@ -106,6 +149,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             showChevron: true,
                             showDivider: false,
                             onTap: () => _startImport(context),
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: AppSpacing.base),
+
+                      SettingsCard(
+                        children: [
+                          SettingsRow(
+                            label: '已保存的教务账号',
+                            value: _savedEduAccount ?? '未保存',
+                            showChevron: _savedEduAccount != null,
+                            showDivider: false,
+                            onTap: () => _manageSavedAccount(context),
                           ),
                         ],
                       ),
