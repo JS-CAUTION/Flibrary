@@ -39,6 +39,7 @@ class _EduWebViewScreenState extends State<EduWebViewScreen> {
   late final WebViewController _controller;
   bool _extracting = false;
   int _loadProgress = 0;
+  bool _canGoBack = false; // WebView 是否有可后退的历史
 
   // ── 账密状态 ──
   bool _saveEnabled = false; // 「登录时保存」开关(持久化,默认关)
@@ -100,6 +101,10 @@ class _EduWebViewScreenState extends State<EduWebViewScreen> {
 
   /// 页面加载完成:离开登录页时落盘暂存凭证;在登录页时注入捕获监听。
   Future<void> _handlePageFinished(String url) async {
+    final canGoBack = await _controller.canGoBack();
+    if (mounted && canGoBack != _canGoBack) {
+      setState(() => _canGoBack = canGoBack);
+    }
     final leftLoginPage = !url.contains('Logon.do');
     if (leftLoginPage && _pendingCapture != null && _saveEnabled) {
       final cred = _pendingCapture!;
@@ -339,6 +344,18 @@ class _EduWebViewScreenState extends State<EduWebViewScreen> {
                     onTap: () => Navigator.pop(context),
                     child: const Icon(Icons.arrow_back,
                         size: AppSpacing.iconSize),
+                  ),
+                  const SizedBox(width: 12),
+                  // 浏览器网页后退(无历史时置灰)
+                  GestureDetector(
+                    onTap: _canGoBack ? () => _controller.goBack() : null,
+                    child: Icon(
+                      Icons.arrow_circle_left_outlined,
+                      size: AppSpacing.iconSize,
+                      color: _canGoBack
+                          ? AppColors.textPrimary
+                          : AppColors.divider,
+                    ),
                   ),
                   const SizedBox(width: AppSpacing.md),
                   const Text('教务在线导入', style: AppTypography.pageTitle),
