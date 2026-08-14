@@ -23,31 +23,35 @@ class _CranePainter extends CustomPainter {
 
   /// cranes.svg 的几何色块(viewBox 135.46667):
   /// (配色, 多边形顶点)。相对坐标已折算为绝对坐标。
-  /// 配色沿头部→尾部渐变: 青 → 蓝 → 蓝紫,整体 80% 透明度。
+  /// 配色:鲜艳暖色系为主(粉红/橙/黄/红/青绿),折痕用蓝紫阴影,整体 80% 透明度。
   static const double _opacity = 0.8;
-  static const Color _cyan = Color(0xFF43C6F7); // 青(头颈/腹面)
-  static const Color _blue = Color(0xFF3D86F5); // 蓝(主翼/身体)
-  static const Color _indigo = Color(0xFF6A5BF0); // 蓝紫(尾羽/折痕)
+  static const Color _pink = Color(0xFFFF5C8A); // 粉红(主翼)
+  static const Color _orange = Color(0xFFFF8A3D); // 橙(头颈)
+  static const Color _yellow = Color(0xFFFFC93D); // 黄(身体颈)
+  static const Color _red = Color(0xFFFF4D4D); // 红(翅前)
+  static const Color _teal = Color(0xFF2EC4B6); // 青绿(尾羽)
+  static const Color _blue = Color(0xFF33A1FD); // 蓝(腹面)
+  static const Color _shadow = Color(0xFF7A5BF0); // 蓝紫(折痕阴影)
 
   static final List<(Color, List<Offset>)> _shapes = [
     (
-      _blue,
+      _pink,
       [Offset(111.30, 58.17), Offset(37.42, 125.32), Offset(108.38, 108.84)],
     ),
     (
-      _cyan,
+      _orange,
       [Offset(127.97, 93.43), Offset(125.59, 78.13), Offset(120.40, 87.32)],
     ),
     (
-      _cyan,
+      _yellow,
       [Offset(111.30, 58.17), Offset(58.93, 10.74), Offset(62.54, 102.48)],
     ),
     (
-      _blue,
+      _red,
       [Offset(125.59, 78.13), Offset(110.25, 76.39), Offset(108.38, 108.84)],
     ),
     (
-      _indigo,
+      _teal,
       [
         Offset(62.05, 89.96),
         Offset(62.54, 102.48),
@@ -56,11 +60,11 @@ class _CranePainter extends CustomPainter {
       ],
     ),
     (
-      _cyan,
+      _blue,
       [Offset(78.36, 115.81), Offset(108.38, 108.84), Offset(84.90, 82.16)],
     ),
     (
-      _indigo,
+      _shadow,
       [Offset(108.38, 108.84), Offset(111.30, 58.17), Offset(84.90, 82.16)],
     ),
   ];
